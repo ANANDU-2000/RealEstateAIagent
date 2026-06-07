@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-import express from 'express';
+import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { pool, testDbConnection } from './db';
@@ -22,7 +22,7 @@ app.use(
 );
 app.use(express.json());
 
-app.get('/health', async (_req, res) => {
+app.get('/health', async (_req: Request, res: Response) => {
   const dbOk = await testDbConnection();
   res.status(dbOk ? 200 : 503).json({
     ok: dbOk,
@@ -32,7 +32,7 @@ app.get('/health', async (_req, res) => {
   });
 });
 
-app.get('/', (_req, res) => {
+app.get('/', (_req: Request, res: Response) => {
   res.json({
     name: 'PropAgent API',
     version: '3.0.0',
