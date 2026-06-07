@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Building2, ArrowRight, LogIn, UserPlus } from 'lucide-react';
+import { Building2, ArrowRight, LogIn, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function HomePage() {
@@ -20,20 +20,21 @@ export default function HomePage() {
 
         <p className="text-base leading-relaxed text-muted">
           WhatsApp AI agent, CRM, and property management for brokers in India, UAE, and
-          Canada. Sign in to your dashboard or start a free 14-day trial.
+          Canada. Your PropAgent admin creates your account and shares your Client ID — then
+          you sign in here.
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Link href="/signup" className="flex-1">
+          <Link href="/login" className="flex-1">
             <Button fullWidth size="lg">
-              <UserPlus className="h-4 w-4" />
-              Start free trial
+              <LogIn className="h-4 w-4" />
+              Broker sign in
             </Button>
           </Link>
-          <Link href="/login" className="flex-1">
+          <Link href="/superadmin/login" className="flex-1">
             <Button variant="outline" fullWidth size="lg">
-              <LogIn className="h-4 w-4" />
-              Sign in
+              <Shield className="h-4 w-4" />
+              Super Admin
             </Button>
           </Link>
         </div>
@@ -64,9 +65,12 @@ export default function HomePage() {
         </div>
 
         <p className="text-xs text-muted">
-          Super Admin and marketing pages ship in later stages. Broker signup and login are
-          live at <Link href="/signup" className="text-primary hover:underline">/signup</Link>{' '}
-          and <Link href="/login" className="text-primary hover:underline">/login</Link>.
+          Public signup is disabled. Super Admin creates broker accounts at{' '}
+          <Link href="/superadmin/clients" className="text-primary hover:underline">
+            /superadmin/clients
+          </Link>
+          . Brokers sign in at{' '}
+          <Link href="/login" className="text-primary hover:underline">/login</Link>.
         </p>
       </div>
     </main>

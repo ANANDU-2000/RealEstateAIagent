@@ -149,4 +149,65 @@ export async function getHealth(): Promise<{
   return apiFetch('/health');
 }
 
+export type SaClient = {
+  clientId: string;
+  businessName: string;
+  ownerName: string;
+  email: string;
+  country: string;
+  plan: string;
+  status: string;
+  joinedAt: string;
+  aiUsed: number;
+  aiLimit: number;
+};
+
+export type SaCreateClientResult = {
+  client: {
+    id: string;
+    clientId: string;
+    email: string;
+    plan: string;
+    businessName: string;
+    ownerName: string;
+    country: string;
+  };
+  temporaryPassword: string;
+  loginUrl: string;
+  message: string;
+};
+
+export async function saLogin(
+  email: string,
+  password: string
+): Promise<{ accessToken: string; admin: { id: string; email: string; name: string | null } }> {
+  return apiFetch('/superadmin/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function saListClients(token: string): Promise<{ clients: SaClient[] }> {
+  return apiFetch('/superadmin/clients', {}, token);
+}
+
+export async function saCreateClient(
+  token: string,
+  payload: {
+    businessName: string;
+    ownerName: string;
+    email: string;
+    phone?: string;
+    country: 'IN' | 'AE' | 'CA';
+    plan: 'starter' | 'pro' | 'agency' | 'trial';
+    trialDays: number;
+  }
+): Promise<SaCreateClientResult> {
+  return apiFetch(
+    '/superadmin/clients',
+    { method: 'POST', body: JSON.stringify(payload) },
+    token
+  );
+}
+
 export { API_BASE_URL };

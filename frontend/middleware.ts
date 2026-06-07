@@ -19,6 +19,12 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.has(REFRESH_COOKIE);
 
+  if (pathname === '/signup' || pathname.startsWith('/signup/')) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('invite', '1');
+    return NextResponse.redirect(loginUrl);
+  }
+
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );

@@ -10,6 +10,7 @@ import { pool, testDbConnection } from './db';
 import { initSocketIO } from './realtime';
 import authRouter from './routes/auth';
 import settingsRouter from './routes/settings';
+import superadminRouter from './routes/superadmin';
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -26,6 +27,7 @@ app.use(express.json());
 
 app.use('/auth', authRouter);
 app.use('/settings', settingsRouter);
+app.use('/superadmin', superadminRouter);
 
 app.get('/health', async (_req: Request, res: Response) => {
   const dbOk = await testDbConnection();

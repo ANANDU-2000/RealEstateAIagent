@@ -2,15 +2,14 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db';
 import {
   createSession,
-  generateClientId,
   generateRefreshToken,
-  hashPassword,
   revokeSession,
   rotateSession,
   signAccessToken,
   verifyPassword,
   findSessionByRefreshToken,
 } from '../services/auth.service';
+import { createTenantAccount } from '../services/tenant.service';
 import { authRateLimiter } from '../middleware/rateLimiter';
 import { loginSchema, registerSchema, refreshSchema } from '../utils/validators';
 
@@ -27,6 +26,14 @@ type TenantRow = {
 };
 
 router.post('/register', async (req: Request, res: Response) => {
+  if (process.env.ALLOW_PUBLIC_SIGNUP !== 'true') {
+    res.status(403).json({
+      error:
+        'Public signup is disabled. Your PropAgent admin will create your account and share your Client ID.',
+    });
+    return;
+  }
+
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' });
@@ -40,64 +47,16 @@ router.post('/register', async (req: Request, res: Response) => {
     return;
   }
 
-  const existing = await pool.query(`SELECT id FROM tenants WHERE email = $1`, [
-    data.email.toLowerCase(),
-  ]);
-  if (existing.rowCount) {
-    res.status(409).json({ error: 'An account with this email already exists' });
-    return;
-  }
-
-  const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-
-    const clientId = await generateClientId(data.country);
-    const passwordHash = await hashPassword(data.password);
-    const plan = data.plan === 'trial' ? 'trial' : data.plan;
-
-    const tenantResult = await client.query<TenantRow>(
-      `INSERT INTO tenants (
-        client_id, business_name, owner_name, email, password_hash,
-        phone, country, plan, status, trial_expires_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'trial', NOW() + INTERVAL '14 days')
-      RETURNING id, email, password_hash, plan, status`,
-      [
-        clientId,
-        data.businessName.trim(),
-        data.ownerName.trim(),
-        data.email.toLowerCase(),
-        passwordHash,
-        data.phone?.trim() ?? null,
-        data.country,
-        plan,
-      ]
-    );
-
-    const tenant = tenantResult.rows[0];
-    if (!tenant) throw new Error('Failed to create tenant');
-
-    await client.query(
-      `INSERT INTO broker_settings (tenant_id) VALUES ($1)`,
-      [tenant.id]
-    );
-
-    const planLimits: Record<string, { ai: number; props: number; team: number }> = {
-      starter: { ai: 500, props: 10, team: 1 },
-      pro: { ai: 2000, props: 50, team: 3 },
-      agency: { ai: 10000, props: 9999, team: 10 },
-      trial: { ai: 100, props: 5, team: 1 },
-    };
-    const limits = planLimits[plan] ?? planLimits.trial;
-
-    await client.query(
-      `INSERT INTO client_plans (
-        tenant_id, ai_message_limit, max_properties, max_team_members
-      ) VALUES ($1, $2, $3, $4)`,
-      [tenant.id, limits.ai, limits.props, limits.team]
-    );
-
-    await client.query('COMMIT');
+    const tenant = await createTenantAccount({
+      businessName: data.businessName,
+      ownerName: data.ownerName,
+      email: data.email,
+      password: data.password,
+      phone: data.phone,
+      country: data.country,
+      plan: data.plan,
+    });
 
     const refreshToken = generateRefreshToken();
     await createSession(tenant.id, refreshToken);
@@ -115,18 +74,19 @@ router.post('/register', async (req: Request, res: Response) => {
         id: tenant.id,
         email: tenant.email,
         plan: tenant.plan,
-        clientId,
-        businessName: data.businessName,
-        ownerName: data.ownerName,
-        country: data.country,
+        clientId: tenant.clientId,
+        businessName: tenant.businessName,
+        ownerName: tenant.ownerName,
+        country: tenant.country,
       },
     });
   } catch (err) {
-    await client.query('ROLLBACK');
+    if (err instanceof Error && err.message === 'EMAIL_EXISTS') {
+      res.status(409).json({ error: 'An account with this email already exists' });
+      return;
+    }
     console.error('Register error:', err);
     res.status(500).json({ error: 'Could not create account. Please try again.' });
-  } finally {
-    client.release();
   }
 });
 

@@ -148,11 +148,9 @@ export function LoginForm() {
         Continue with Google
       </Button>
 
-      <p className="text-center text-sm text-muted">
-        Don&apos;t have an account?{' '}
-        <Link href="/signup" className="font-medium text-primary hover:underline">
-          Start free trial
-        </Link>
+      <p className="rounded-lg bg-surface-2 px-3 py-2 text-center text-sm text-muted">
+        Accounts are invite-only. Your PropAgent admin will share your Client ID, email, and
+        temporary password after creating your workspace.
       </p>
     </form>
   );

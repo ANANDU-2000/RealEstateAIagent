@@ -11,6 +11,7 @@ Items waiting on external input or manual dashboard steps.
 - `DATABASE_URL` (internal URL from Render Postgres dashboard)
 - `FRONTEND_URL` (Vercel URL once connected)
 - `JWT_SECRET`, `REFRESH_TOKEN_SECRET`, `SA_JWT_SECRET` (64+ char random strings)
+- `ALLOW_PUBLIC_SIGNUP=false` (default — brokers created by Super Admin only)
 - `R2_ACCOUNT_ID`, `R2_BUCKET_NAME=propagent-files`
 
 ## Critical — Render Service Misconfiguration
@@ -56,9 +57,15 @@ Until fixed, pushes to GitHub will not deploy a working Node.js API.
 3. Redeploy from latest `main` after push
 
 **Live routes after successful deploy:**
-- `/` — home with Sign in / Start trial
-- `/login`, `/signup`, `/onboarding`, `/chats`
-- Super Admin (`/superadmin/*`) — **not built yet** (Stage 7)
+- `/` — home with Broker sign in + Super Admin link
+- `/login` — broker login (invite-only; `/signup` redirects here)
+- `/superadmin/login`, `/superadmin/clients` — create clients, share Client ID + temp password
+- `/onboarding`, `/chats`
+
+**First Super Admin (one-time on Render shell or local with DATABASE_URL):**
+```bash
+cd backend && npm run seed-superadmin -- admin@yourdomain.com YourSecurePassword "Admin Name"
+```
 
 ## API Keys Not Yet Provided
 | Key | Required For | Stage |
