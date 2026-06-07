@@ -1,37 +1,34 @@
-# PropAgent — Next Stage (Stage 2: Auth)
+# PropAgent — Next Stage (Stage 3: Onboarding + Properties)
 
-**Prerequisites from Stage 1:** All met ✅
+**Previous:** Task 3.1 Onboarding ✅
 
-## Entry Criteria
-- [x] DB schema applied
-- [x] Backend skeleton running
-- [x] Frontend skeleton running
-- [x] Env files wired
-- [ ] Render service updated to Node.js runtime (see PENDING.md)
+## Current Task: 3.2 — Properties API
 
-## Stage 2 Goals
-Build login/signup end-to-end so every dashboard page can require auth.
+**Spec:** `docs/tracking/ALL-PAGES-MASTER.md` § 3.2  
+**Schema:** `properties`, `property_photos`
 
-### Backend Tasks
-1. `src/services/auth.service.ts` — bcrypt + JWT
-2. `src/middleware/auth.ts` — Bearer token validation
-3. `src/routes/auth.ts`:
-   - `POST /auth/register` — create tenant + broker_settings + client_plans
-   - `POST /auth/login` — return access + refresh tokens
-   - `POST /auth/refresh` — rotate refresh token
-   - `POST /auth/logout` — invalidate session
+### What to Build
+- `backend/src/routes/properties.ts` — CRUD scoped to `tenant_id`
+- `backend/src/services/properties.service.ts`
+- Zod validators for create/update
+- Wire into `backend/src/index.ts`
 
-### Frontend Tasks
-1. `app/(auth)/login/page.tsx` — email/password form
-2. `app/(auth)/signup/page.tsx` — 3-step wizard (account → plan → confirm)
-3. `middleware.ts` — protect `(dashboard)` routes
-4. Auth context/hook for token storage
+### API Endpoints
+| Method | Path |
+|--------|------|
+| GET | `/properties` |
+| GET | `/properties/:id` |
+| POST | `/properties` |
+| PUT | `/properties/:id` |
+| DELETE | `/properties/:id` |
 
 ### Definition of Done
-- New broker can register → gets tenant row in DB
-- Login returns JWT → frontend stores token
-- Protected route redirects to `/login` without token
-- `GET /health` still works without auth
+- All routes require `requireAuth`
+- Every query uses `WHERE tenant_id = $1`
+- Zod validation on create/update
+- `npm run build:backend` passes
 
-## After Stage 2
-Proceed to Stage 3: Onboarding + Properties CRUD (see `TASKS.md`)
+## After 3.2
+Task 3.3 Properties list UI → 3.4 Details tab (run **M1** migration first)
+
+See `docs/tracking/TASKS.md` for full list.

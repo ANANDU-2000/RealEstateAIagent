@@ -108,6 +108,38 @@ export async function logout(): Promise<void> {
   await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
 }
 
+export type OnboardingStatus = {
+  ownerName: string;
+  aiName: string;
+  whatsappNumber: string | null;
+  steps: {
+    accountCreated: boolean;
+    whatsappConnected: boolean;
+    hasProperty: boolean;
+    hasAvailability: boolean;
+    hasOfficeAddress: boolean;
+  };
+  completedCount: number;
+  totalSteps: number;
+  quickStepsCompleted: number;
+  quickStepsTotal: number;
+};
+
+export async function getOnboardingStatus(token: string): Promise<OnboardingStatus> {
+  return apiFetch('/settings/onboarding-status', {}, token);
+}
+
+export async function updateWhatsAppNumber(
+  token: string,
+  whatsappNumber: string
+): Promise<{ ok: boolean; whatsappNumber: string }> {
+  return apiFetch(
+    '/settings/whatsapp',
+    { method: 'PATCH', body: JSON.stringify({ whatsappNumber }) },
+    token
+  );
+}
+
 export async function getHealth(): Promise<{
   ok: boolean;
   service: string;

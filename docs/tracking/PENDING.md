@@ -72,3 +72,21 @@ All secrets pasted in chat should be **rotated** after setup:
 
 ## Render Postgres 90-Day Free Tier
 Set calendar reminder at day 80 to backup and rotate DB per `render-postgres-only.md` STEP 9.
+
+## Schema Migrations (before UI tasks)
+
+See [SCHEMA-GAPS.md](./SCHEMA-GAPS.md). Do not build UI for fields without a DB column.
+
+| Migration | Blocks task | Notes |
+|-----------|-------------|-------|
+| M1 | 3.4 Property Details | `land_type`, `status` on properties |
+| M2 | 3.6 Videos/Documents tabs | New tables |
+| M3 | 4.1, 4.4, 4.6 Settings | timezone, logo, JSONB prefs |
+| M4 | 4.7, 7.12 Billing | invoices, subscriptions, payments |
+| M5 | 7.14–7.19 Super Admin | sa_api_keys, feature_flags, etc. |
+| M6 | 6.3 Leads timeline | Optional activity_log |
+| M7 | 2.6 Forgot password | password_reset_tokens |
+
+**R2 keys** block task **3.5** (Property Photos).  
+**META_* keys** block task **5.1** (WhatsApp webhook).  
+**ANTHROPIC_API_KEY** blocks task **5.2** (AI service).

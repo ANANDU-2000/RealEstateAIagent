@@ -1,28 +1,25 @@
 # PropAgent — Current Progress
 
-**Stage:** 2 — Auth  
-**Status:** Complete  
+**Stage:** 3 — Onboarding + Properties  
+**Status:** In Progress  
+**Next task:** 3.2  
 **Date:** 2026-06-07
 
 ## Stage 1 — Complete
 - Monorepo, DB schema (18 tables), backend skeleton, frontend on Vercel
-- Cursor rules, tracking docs, Render env wired
-- Vercel live: `real-estate-a-i-agent.vercel.app`
 
 ## Stage 2 — Complete
-- [x] BUILD-PLAYBOOK + agent docs updated
-- [x] UI component library (`components/ui/*`, globals.css tokens, constants)
-- [x] Backend auth (service + routes + rate limiter + validators)
-- [x] Login page (split desktop, gradient mobile, shake/spinner)
-- [x] Signup wizard (3 steps, DPDP/CASL, plan cards)
-- [x] Auth wiring (useAuth, API route cookie proxy, middleware, dashboard stub)
-- [x] Onboarding placeholder (`/onboarding`)
-- [x] Local E2E: register → login → refresh verified against Render Postgres
-- [x] Frontend + backend `npm run build` pass
+- UI library, auth API, login/signup, auth wiring
+
+## Stage 3 — In Progress
+- [x] **3.1** Onboarding full spec (checklist, progress bar, WhatsApp drawer, onboarding-status API)
+- [ ] **3.2** Properties API ← **NEXT**
+- [ ] 3.3–3.7 Properties UI
 
 ## Known Blockers
-- Render service may still be Ruby runtime — redeploy needed for live `/auth/*`; see PENDING.md
-- R2 keys not yet provided
+- Render Node runtime — see PENDING.md
+- R2 keys — blocks 3.5 Photos
 
-## Next
-Stage 3.1: Onboarding checklist (full spec from all-pages-v3 PAGE 3)
+## Reference
+- Master backlog: `docs/tracking/ALL-PAGES-MASTER.md`
+- Next detail: `docs/tracking/PROGRESS-NEXT.md`
