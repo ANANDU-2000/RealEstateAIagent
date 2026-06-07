@@ -1,12 +1,21 @@
 # PropAgent — Agent Guide
 
-This document tells Cursor agents how to work on PropAgent V3.
+How Cursor agents work on PropAgent V3.
 
 ## Before You Code
-1. Read `docs/tracking/PROGRESS-CURRENT.md` — know what's done
-2. Read `docs/tracking/PENDING.md` — know what's blocked
-3. Read `docs/tracking/TASKS.md` — pick the next task in order
-4. Read relevant spec in `files/` before implementing
+1. `docs/tracking/PROGRESS-CURRENT.md` — what's done
+2. `docs/tracking/PENDING.md` — what's blocked
+3. `docs/tracking/TASKS.md` — pick next atomic task
+4. `docs/tracking/BUILD-PLAYBOOK.md` — quality rules
+5. Relevant spec in `files/` (especially `all-pages-v3.md`)
+
+## One Task at a Time
+Finish and verify one task before starting the next. Each task = one focused change set.
+
+## Spec Reference Order
+1. `files/all-pages-v3.md` — design, layout, icons, copy
+2. `files/build-order-prompts.md` — build order + Cursor prompts
+3. `backend/src/db/schema.sql` — data shapes (never guess columns)
 
 ## Architecture
 ```
@@ -16,36 +25,40 @@ Uploads  → Cloudflare R2
 AI       → Anthropic Claude (primary), OpenAI fallback
 ```
 
-## Stack Rules
-- **NO Supabase** — use Render Postgres + custom JWT + Socket.IO
+## Stack (DO NOT DEVIATE)
+- **NO Supabase** — Render Postgres + custom JWT + Socket.IO
 - Every tenant query: `WHERE tenant_id = $1`
-- Never invent data — read schema at `backend/src/db/schema.sql`
+- Never invent data — no fake seed tenants or demo properties
 - Never commit secrets — only `.env.example` in git
 
-## Build Order (Strict)
-See `files/build-order-prompts.md`:
-1. Auth (login/signup) — Stage 2
-2. Onboarding
-3. Properties CRUD
-4. Settings (office, AI, availability)
-5. WhatsApp webhook + AI service
-6. Chats (realtime)
-7. Calendar, Leads, Callbacks, Analytics
-8. Super Admin, Marketing
+## Page Build Playbook Summary
+| Pillar | Rule |
+|--------|------|
+| Desktop-first | Full layout at 1440px, then 375px mobile |
+| Icons | Lucide React only |
+| States | Loading skeleton, empty, error with retry |
+| Security | Zod + bcrypt + JWT; rate limit auth |
+| Compliance | DPDP (IN), CASL (CA) at signup |
+| Copy | Human words, broker intent |
+
+Full details: `docs/tracking/BUILD-PLAYBOOK.md`
+
+## Build Order
+1. Auth (Stage 2) — current
+2. Onboarding + Properties (Stage 3)
+3. Settings (Stage 4)
+4. WhatsApp + AI (Stage 5)
+5. Dashboard pages (Stage 6)
+6. Marketing + Super Admin (Stage 7)
 
 ## Cursor Rules
-- `.cursor/rules/00-propagent-core.mdc` — always on
-- `.cursor/rules/10-design-system.mdc` — frontend
-- `.cursor/rules/20-ai-agent.mdc` — AI/backend services
-
-## MCP Tools Available
-- **Render MCP** — env vars, service status, read-only Postgres queries
-- **Cloudflare MCP** — R2 bindings (needs OAuth)
+- `.cursor/rules/00-propagent-core.mdc`
+- `.cursor/rules/10-design-system.mdc`
+- `.cursor/rules/20-ai-agent.mdc`
 
 ## Verification Checklist
-Before marking a task done:
-- [ ] TypeScript compiles (`npm run build`)
-- [ ] Loading / empty / error states on UI
-- [ ] Tenant isolation on all new queries
-- [ ] No secrets in committed files
-- [ ] Update `docs/tracking/PROGRESS-CURRENT.md`
+- [ ] TypeScript compiles
+- [ ] Loading / empty / error states
+- [ ] Tenant isolation on new queries
+- [ ] No secrets in git
+- [ ] Update tracking docs

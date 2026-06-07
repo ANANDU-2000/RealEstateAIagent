@@ -4,27 +4,48 @@
   --background: #f8fafc;
   --foreground: #0f172a;
   --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #f1f5f9;
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
-  --muted: #64748b;
-  --border: rgba(15, 23, 42, 0.08);
+  --primary-light: #eff6ff;
+  --primary-100: #dbeafe;
+  --muted: #6b7280;
+  --muted-light: #9ca3af;
+  --text-secondary: #374151;
+  --border: #e2e8f0;
+  --border-dark: #cbd5e1;
   --success: #16a34a;
-  --warning: #d97706;
+  --success-light: #f0fdf4;
+  --warning: #f59e0b;
+  --warning-light: #fffbeb;
   --danger: #dc2626;
+  --danger-light: #fef2f2;
+  --orange: #ea580c;
+  --orange-light: #fff7ed;
+  --purple: #7c3aed;
   --sidebar: #0f172a;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  --error-ring: 0 0 0 3px rgba(220, 38, 38, 0.15);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-primary: var(--primary);
   --color-primary-dark: var(--primary-dark);
+  --color-primary-light: var(--primary-light);
   --color-muted: var(--muted);
   --color-border: var(--border);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-orange: var(--orange);
   --color-sidebar: var(--sidebar);
   --font-sans: var(--font-inter);
 }
@@ -33,4 +54,23 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+@keyframes slide-in-toast {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-toast {
+  animation: slide-in-toast 0.25s ease-out;
 }

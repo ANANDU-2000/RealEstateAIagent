@@ -5,6 +5,21 @@ export type ApiError = {
   status: number;
 };
 
+export type Tenant = {
+  id: string;
+  email: string;
+  plan: string;
+  clientId: string;
+  businessName: string;
+  ownerName: string;
+  country: string;
+};
+
+export type AuthResponse = {
+  accessToken: string;
+  tenant: Tenant;
+};
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -41,6 +56,56 @@ export async function apiFetch<T>(
   }
 
   return response.json() as Promise<T>;
+}
+
+async function authProxy<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    credentials: 'include',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw { error: data.error ?? 'Request failed', status: response.status } satisfies ApiError;
+  }
+
+  return data as T;
+}
+
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  return authProxy<AuthResponse>('/api/auth/login', { email, password });
+}
+
+export async function register(payload: {
+  businessName: string;
+  ownerName: string;
+  email: string;
+  password: string;
+  phone?: string;
+  country: 'IN' | 'AE' | 'CA';
+  plan: 'starter' | 'pro' | 'agency' | 'trial';
+  termsAccepted: true;
+  caslConsent?: boolean;
+}): Promise<AuthResponse> {
+  return authProxy<AuthResponse>('/api/auth/register', payload);
+}
+
+export async function refreshAccessToken(): Promise<string | null> {
+  const response = await fetch('/api/auth/refresh', {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  if (!response.ok) return null;
+  const data = (await response.json()) as { accessToken: string };
+  return data.accessToken;
+}
+
+export async function logout(): Promise<void> {
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
 }
 
 export async function getHealth(): Promise<{

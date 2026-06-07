@@ -1,51 +1,28 @@
-# PropAgent — Current Progress (Stage 1)
+# PropAgent — Current Progress
 
-**Stage:** 1 — Foundation + Infrastructure Wiring  
+**Stage:** 2 — Auth  
 **Status:** Complete  
 **Date:** 2026-06-07
 
-## Completed
+## Stage 1 — Complete
+- Monorepo, DB schema (18 tables), backend skeleton, frontend on Vercel
+- Cursor rules, tracking docs, Render env wired
+- Vercel live: `real-estate-a-i-agent.vercel.app`
 
-### Repository Structure
-- Monorepo with `backend/` (Express + TypeScript) and `frontend/` (Next.js 16)
-- Root workspace `package.json`, `README.md`, `.gitignore`
-- `render.yaml` Blueprint for Render deployment
+## Stage 2 — Complete
+- [x] BUILD-PLAYBOOK + agent docs updated
+- [x] UI component library (`components/ui/*`, globals.css tokens, constants)
+- [x] Backend auth (service + routes + rate limiter + validators)
+- [x] Login page (split desktop, gradient mobile, shake/spinner)
+- [x] Signup wizard (3 steps, DPDP/CASL, plan cards)
+- [x] Auth wiring (useAuth, API route cookie proxy, middleware, dashboard stub)
+- [x] Onboarding placeholder (`/onboarding`)
+- [x] Local E2E: register → login → refresh verified against Render Postgres
+- [x] Frontend + backend `npm run build` pass
 
-### Database
-- Full schema in `backend/src/db/schema.sql` (18 tables + `tenant_stats` view)
-- Schema applied to Render Postgres `real_estate_db_i5ot`
-- Tables verified: tenants, sessions, broker_settings, client_plans, properties, property_photos, team_members, availability_slots, conversations, messages, meetings, callbacks, lead_escalations, ai_usage_log, hallucination_log, prompt_versions, sa_audit_log, super_admins
+## Known Blockers
+- Render service may still be Ruby runtime — redeploy needed for live `/auth/*`; see PENDING.md
+- R2 keys not yet provided
 
-### Backend
-- Express app with `/health` endpoint (includes DB check)
-- PostgreSQL connection pool with SSL for Render
-- Socket.IO realtime bootstrap (`src/realtime/index.ts`)
-- Migration script (`npm run migrate` / `scripts/run-migrate.js`)
-- Empty scaffold dirs: routes, services, middleware, jobs, utils
-
-### Frontend
-- Next.js App Router with PropAgent design tokens
-- Foundation landing page
-- `lib/api.ts` — API client stub
-- `hooks/useRealtime.ts` — Socket.IO client stub
-- `vercel.json` for deployment
-
-### Infrastructure Wiring
-- `backend/.env` and `frontend/.env.local` configured locally (gitignored)
-- `.env.example` at root with all keys documented
-- Render MCP env vars updated
-
-### Developer Experience
-- `.cursor/rules/` — core, design system, AI agent rules
-- `AGENTS.md` + `docs/tracking/` full tracking system
-
-## Known Issues
-- Render web service was misconfigured as Ruby — needs update to Node.js (see PENDING.md)
-- Vercel project not yet connected (needs dashboard or deploy token)
-- R2 S3 access keys not yet created
-
-## Verification
-- [x] 18 DB tables present on Render
-- [x] Backend builds (`npm run build`)
-- [x] Frontend builds (`npm run build`)
-- [x] No secrets in git-tracked files
+## Next
+Stage 3.1: Onboarding checklist (full spec from all-pages-v3 PAGE 3)

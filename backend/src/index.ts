@@ -8,6 +8,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { pool, testDbConnection } from './db';
 import { initSocketIO } from './realtime';
+import authRouter from './routes/auth';
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -21,6 +22,8 @@ app.use(
   })
 );
 app.use(express.json());
+
+app.use('/auth', authRouter);
 
 app.get('/health', async (_req: Request, res: Response) => {
   const dbOk = await testDbConnection();

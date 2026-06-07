@@ -1,78 +1,37 @@
 # PropAgent — Master Checklist
 
-Track overall project completion. Update as stages finish.
+## Per-Page Playbook (every task)
+- [ ] Read `all-pages-v3.md` section for this page
+- [ ] Desktop layout at 1440px
+- [ ] Mobile layout at 375px
+- [ ] Lucide icons only
+- [ ] Loading skeleton
+- [ ] Empty state with CTA
+- [ ] Error state with retry
+- [ ] Human error messages
+- [ ] `metadata` SEO export
+- [ ] Zod validation (if form)
+- [ ] No fake/seed data
+- [ ] Tracking docs updated
 
 ## Stage 1 — Foundation ✅
-- [x] `.gitignore` protects secrets
-- [x] Backend Express skeleton
-- [x] Frontend Next.js skeleton
-- [x] PostgreSQL schema file
-- [x] Schema applied to Render DB (18 tables)
-- [x] Environment files (local + example)
-- [x] Render env vars set via MCP
-- [x] `render.yaml` created
-- [x] Cursor rules (3 files)
-- [x] Tracking docs (8 files)
-- [x] GitHub repo pushed
-- [ ] Render service switched to Node.js runtime
+- [x] Monorepo, DB, backend, frontend, docs, git push
 
-## Stage 2 — Auth
-- [ ] auth.service.ts
-- [ ] auth middleware
-- [ ] auth routes (register/login/refresh)
-- [ ] Login page
-- [ ] Signup wizard
-- [ ] Next.js auth middleware
+## Stage 2 — Auth ✅
+- [x] UI components (Button, Input, Card, etc.)
+- [x] Backend auth service + routes
+- [x] `/login` page
+- [x] `/signup` wizard + compliance
+- [x] Route protection middleware
+- [x] E2E register + login verified (local backend → Render Postgres)
 
 ## Stage 3 — Properties
-- [ ] Properties API CRUD
-- [ ] Properties list page
-- [ ] Add property page
-- [ ] R2 photo upload
+- [ ] Onboarding, properties CRUD, R2 upload
 
-## Stage 4 — Settings
-- [ ] Office settings page
-- [ ] AI settings page
-- [ ] Availability page
-
-## Stage 5 — WhatsApp + AI
-- [ ] WhatsApp webhook
-- [ ] AI service (Claude + fallback)
-- [ ] Prompt builder
-- [ ] Conversation service
-- [ ] Cron jobs
-
-## Stage 6 — Dashboard
-- [ ] Chats (Socket.IO)
-- [ ] Calendar
-- [ ] Leads/CRM
-- [ ] Callbacks
-- [ ] Analytics
-
-## Stage 7 — Admin + Marketing
-- [ ] Super Admin panel
-- [ ] Landing page
-- [ ] Pricing page
+## Stage 4–7
+See TASKS.md
 
 ## Infrastructure
-- [x] Render Postgres provisioned
-- [x] Render backend service exists
-- [ ] Render backend on Node.js
-- [ ] Vercel frontend deployed
-- [ ] Cloudflare R2 bucket + keys
-- [ ] UptimeRobot keep-alive
-- [ ] Custom domain (optional)
-
-## Compliance (Pre-Launch)
-- [ ] Privacy policy page
-- [ ] Terms of service page
-- [ ] DPDP consent flow (India)
-- [ ] CASL consent (Canada signup)
-- [ ] GST invoice generation (India)
-
-## Pre-Launch QA
-- [ ] Multi-tenant isolation tested
-- [ ] AI hallucination control tested
-- [ ] WhatsApp webhook live test
-- [ ] Mobile responsive (375px)
-- [ ] Payment flow test (sandbox)
+- [x] Vercel frontend deployed
+- [ ] Render backend `/health` live
+- [ ] Cloudflare R2 keys
