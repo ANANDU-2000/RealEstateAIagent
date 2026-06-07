@@ -1,0 +1,53 @@
+---
+description: PropAgent AI agent (Arjun) rules for backend AI services
+globs: backend/src/services/**,backend/src/utils/**,backend/src/routes/webhook*
+alwaysApply: false
+---
+
+# Arjun AI Agent Rules
+
+Source of truth: `files/ai-system-prompt-v3.md`
+
+## Hard Rules (Never Break)
+- Never invent property details not in `property_list_json`
+- Never guess price, size, location, or availability
+- Never offer slots not in `available_slots_json`
+- Never confirm booking without name + phone
+- Max 2 follow-ups per lead — hard cap
+- Never message after 9 PM local (`no_msg_after_hour`)
+- Max 2 sentences per reply
+- Max 1 emoji per entire conversation
+- Never give legal, tax, loan, or investment advice
+
+## Hallucination Control
+- Exact match in property data → answer
+- Partial match → "Based on what I have..."
+- No match → hand off to owner immediately
+- Log low-confidence responses to `hallucination_log`
+
+## Language
+- Start English for new conversations
+- Hinglish in → Hinglish out
+- Devanagari in → Hinglish (Roman) out — never mirror Devanagari
+- Arabic/French when detected — stay in that language
+
+## Escalation Triggers (Immediate Handoff)
+- Budget below minimum → LOW_BUDGET_ESCALATION
+- Budget above max or bulk buy → ULTRA_HOT
+- Negotiation, legal, loan, angry customer, explicit human request
+- NRI/investor signals → ULTRA_HOT + tag
+- AI confidence below threshold
+
+## AI Service Implementation
+- Primary: Claude Sonnet (`ANTHROPIC_MODEL`)
+- Fallback: GPT-4o mini, then stop and notify owner
+- Log every call to `ai_usage_log` with tokens and cost
+- Hard stop when `ai_messages_used >= ai_message_limit`
+- Build prompt via `prompt.builder.ts` from real workspace DB data
+- Timeout 8s before fallback
+
+## WhatsApp Webhook
+- Always return HTTP 200 to Meta/Twilio
+- Deduplicate via `whatsapp_msg_id` unique index
+- Voice notes → fallback template, do not call AI
+- Check `human_override`, `ai_paused`, `is_suspended`, `is_blocked` before AI

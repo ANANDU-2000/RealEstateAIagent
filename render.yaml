@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: realestateaiagent-api
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: real-estate-db
+          property: connectionString
+
+databases:
+  - name: real-estate-db
+    plan: free
+    region: singapore
+    databaseName: real_estate_db_i5ot

@@ -1,0 +1,47 @@
+---
+description: PropAgent frontend design system
+globs: frontend/**/*
+alwaysApply: false
+---
+
+# PropAgent Design System
+
+## Colors (ONLY these)
+- Primary: `#2563EB`
+- Dark/Sidebar: `#0F172A`
+- Background: `#F8FAFC`
+- Surface/Cards: `#FFFFFF`
+- Muted text: `#64748B`
+- Success: `#16A34A`
+- Warning: `#D97706`
+- Danger: `#DC2626`
+- Border: `rgba(15, 23, 42, 0.08)`
+
+No neon, no random gradients, no crypto-style UI.
+
+## Typography
+- Font: Inter (via next/font)
+- No emoji icons — Lucide React only
+
+## Layout
+- Border radius: cards 16–24px, buttons 8–18px
+- Spacing: 8pt grid (8/16/24/32/40/48px)
+- Touch targets: minimum 44×44px on mobile
+- Mobile-first responsive design
+
+## Required UI States
+Every data-fetching component MUST have:
+1. Loading skeleton (never blank screen)
+2. Empty state with actionable CTA
+3. Error state with retry button
+
+## Frontend Patterns
+- API calls via `lib/api.ts` — never raw fetch scattered in components
+- Realtime via `hooks/useRealtime.ts` (Socket.IO)
+- No external UI libraries — Tailwind only unless explicitly approved
+- Dashboard auth via JWT stored securely (httpOnly cookie when implemented)
+
+## Page Limits
+- Max 1 primary chart per analytics page
+- Bottom nav max 3 tabs on mobile dashboard
+- Primary CTA max 1 per section

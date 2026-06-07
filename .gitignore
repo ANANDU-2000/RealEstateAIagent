@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment & secrets — NEVER commit
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env.local
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Database dumps & backups
+*.dump
+*.sql.backup
+backup-*.dump
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Vercel
+.vercel
+
+# Misc
+*.pem
+.turbo
