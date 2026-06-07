@@ -40,19 +40,25 @@ Until fixed, pushes to GitHub will not deploy a working Node.js API.
    - `R2_PUBLIC_URL`
 
 ## Vercel Project Connection
-**Status:** Blocked  
-**Have:** Team ID `team_U8qgfcFQABNoNtJrAy5QyaZf`, AI Gateway key (`vck_...`)  
-**Need:** Vercel deploy token OR manual dashboard connection  
-**Note:** `vck_` key is for Vercel AI Gateway, not deployment API.
+**Status:** Fix in progress — production returned `DEPLOYMENT_NOT_FOUND` (404 on all routes)  
+**Domain:** `https://real-estate-a-i-agent.vercel.app`
 
-**Steps:**
-1. Vercel Dashboard → Add New Project
-2. Import `ANANDU-2000/RealEstateAIagent`
-3. Root Directory: `frontend`
-4. Framework: Next.js (auto-detected)
-5. Add env vars from `frontend/.env.example`
-6. Set `NEXT_PUBLIC_API_URL=https://realestateaiagent-0ubp.onrender.com`
-7. Update `FRONTEND_URL` on Render backend to match Vercel URL
+**Repo config (updated):**
+- Root `vercel.json` — `npm install --include=dev`, `npm run build:frontend`, output `frontend/.next`
+- `frontend/vercel.json` — use when Root Directory is set to `frontend` in dashboard
+
+**Required Vercel Dashboard settings:**
+1. Project → Settings → General → **Root Directory:** `frontend` (recommended)  
+   OR leave blank and use root `vercel.json`
+2. Environment Variables:
+   - `NEXT_PUBLIC_API_URL=https://realestateaiagent-0ubp.onrender.com`
+   - `NEXT_PUBLIC_APP_NAME=PropAgent`
+3. Redeploy from latest `main` after push
+
+**Live routes after successful deploy:**
+- `/` — home with Sign in / Start trial
+- `/login`, `/signup`, `/onboarding`, `/chats`
+- Super Admin (`/superadmin/*`) — **not built yet** (Stage 7)
 
 ## API Keys Not Yet Provided
 | Key | Required For | Stage |

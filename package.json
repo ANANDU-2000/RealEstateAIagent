@@ -12,7 +12,8 @@
     "dev:frontend": "npm run dev --workspace=frontend",
     "build:backend": "npm run build --workspace=backend",
     "build:frontend": "npm run build --workspace=frontend",
-    "build": "npm run build:backend && npm run build:frontend"
+    "build": "npm run build:backend && npm run build:frontend",
+    "vercel-build": "npm run build:frontend"
   },
   "engines": {
     "node": ">=20.0.0"
