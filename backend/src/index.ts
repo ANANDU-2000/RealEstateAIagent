@@ -18,6 +18,7 @@ import meetingsRouter from './routes/meetings';
 import callbacksRouter from './routes/callbacks';
 import analyticsRouter from './routes/analytics';
 import webhookRouter from './routes/webhook';
+import { resolveCorsOrigin } from './utils/corsOrigins';
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -27,7 +28,7 @@ setIo(io);
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    origin: resolveCorsOrigin,
     credentials: true,
   })
 );

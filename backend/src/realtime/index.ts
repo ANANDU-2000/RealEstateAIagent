@@ -1,14 +1,14 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
 import { verifyAccessToken } from '../services/auth.service';
+import { parseAllowedOrigins } from '../utils/corsOrigins';
 
 export function initSocketIO(httpServer: HttpServer): SocketServer {
-  const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-
   const io = new SocketServer(httpServer, {
     cors: {
-      origin: frontendUrl,
+      origin: parseAllowedOrigins(),
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 
