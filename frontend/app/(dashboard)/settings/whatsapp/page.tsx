@@ -1,0 +1,348 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
+import { SettingsPageShell } from '@/components/settings/SettingsPageShell';
+import { Alert } from '@/components/ui/Alert';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { useToast } from '@/components/ui/Toast';
+import {
+  getWhatsAppSettings,
+  testWhatsAppConnection,
+  updateWhatsAppSettings,
+  type WhatsAppSettings,
+} from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
+
+const SETUP_STEPS = [
+  'Open Meta Business Suite and select or create your business account.',
+  'In WhatsApp Manager, add your WhatsApp Business phone number.',
+  'Copy the Phone Number ID and WhatsApp Business Account ID (WABA).',
+  'Generate a permanent access token with whatsapp_business_messaging permission.',
+  'Paste the credentials below and save. Then send a test message to verify.',
+];
+
+function formatConnectedAt(iso: string | null): string | null {
+  if (!iso) return null;
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(iso));
+  } catch {
+    return null;
+  }
+}
+
+export default function WhatsAppSettingsPage() {
+  const { accessToken } = useAuth();
+  const { toast } = useToast();
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [settings, setSettings] = useState<WhatsAppSettings | null>(null);
+
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [metaPhoneNumberId, setMetaPhoneNumberId] = useState('');
+  const [metaWabaId, setMetaWabaId] = useState('');
+  const [metaAccessToken, setMetaAccessToken] = useState('');
+  const [tokenStored, setTokenStored] = useState(false);
+  const [showToken, setShowToken] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const loadSettings = useCallback(async () => {
+    if (!accessToken) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getWhatsAppSettings(accessToken);
+      setSettings(data);
+      setWhatsappNumber(data.whatsappNumber ?? '');
+      setMetaPhoneNumberId(data.metaPhoneNumberId ?? '');
+      setMetaWabaId(data.metaWabaId ?? '');
+      setTokenStored(data.hasAccessToken);
+      setMetaAccessToken('');
+      setShowToken(false);
+    } catch (err) {
+      const message =
+        err && typeof err === 'object' && 'error' in err
+          ? String((err as { error: string }).error)
+          : 'Could not load WhatsApp settings.';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
+
+  async function handleSave() {
+    if (!accessToken) return;
+    setFormError(null);
+    setSaving(true);
+    try {
+      const payload: {
+        whatsappNumber: string;
+        metaPhoneNumberId: string;
+        metaWabaId: string;
+        metaAccessToken?: string;
+      } = {
+        whatsappNumber: whatsappNumber.trim(),
+        metaPhoneNumberId: metaPhoneNumberId.trim(),
+        metaWabaId: metaWabaId.trim(),
+      };
+
+      const tokenValue = metaAccessToken.trim();
+      if (tokenValue) {
+        payload.metaAccessToken = tokenValue;
+      }
+
+      const result = await updateWhatsAppSettings(accessToken, payload);
+      setSettings((prev) =>
+        prev
+          ? {
+              ...prev,
+              whatsappNumber: result.whatsappNumber,
+              metaPhoneNumberId: result.metaPhoneNumberId,
+              metaWabaId: result.metaWabaId,
+              whatsappConnected: result.whatsappConnected,
+              hasAccessToken: result.whatsappConnected || tokenStored,
+            }
+          : null
+      );
+      if (tokenValue) {
+        setTokenStored(true);
+        setMetaAccessToken('');
+        setShowToken(false);
+      }
+      toast('WhatsApp settings saved');
+      void loadSettings();
+    } catch (err) {
+      const message =
+        err && typeof err === 'object' && 'error' in err
+          ? String((err as { error: string }).error)
+          : 'Could not save settings.';
+      setFormError(message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleTest() {
+    if (!accessToken) return;
+    setFormError(null);
+    setTesting(true);
+    try {
+      const result = await testWhatsAppConnection(accessToken);
+      toast(result.message);
+    } catch (err) {
+      const message =
+        err && typeof err === 'object' && 'error' in err
+          ? String((err as { error: string }).error)
+          : 'Test message failed.';
+      setFormError(message);
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    if (!accessToken) return;
+    const confirmed = window.confirm(
+      'Disconnect WhatsApp? Arjun will stop receiving and sending messages until you reconnect.'
+    );
+    if (!confirmed) return;
+
+    setFormError(null);
+    setDisconnecting(true);
+    try {
+      await updateWhatsAppSettings(accessToken, {
+        whatsappNumber: null,
+        metaPhoneNumberId: null,
+        metaAccessToken: null,
+        metaWabaId: null,
+      });
+      setWhatsappNumber('');
+      setMetaPhoneNumberId('');
+      setMetaWabaId('');
+      setMetaAccessToken('');
+      setTokenStored(false);
+      toast('WhatsApp disconnected');
+      void loadSettings();
+    } catch (err) {
+      const message =
+        err && typeof err === 'object' && 'error' in err
+          ? String((err as { error: string }).error)
+          : 'Could not disconnect WhatsApp.';
+      setFormError(message);
+    } finally {
+      setDisconnecting(false);
+    }
+  }
+
+  const connected = settings?.whatsappConnected ?? false;
+  const connectedAt = formatConnectedAt(settings?.whatsappConnectedAt ?? null);
+
+  return (
+    <SettingsPageShell
+      title="WhatsApp"
+      description="Connect your business number so Arjun can reply to buyers on WhatsApp."
+      loading={loading}
+      error={error}
+      onRetry={() => void loadSettings()}
+    >
+      <Card className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Connection status</p>
+            <p className="mt-0.5 text-sm text-muted">
+              {connected
+                ? whatsappNumber || 'Number configured'
+                : 'Not connected — add Meta credentials below'}
+            </p>
+            {connectedAt && (
+              <p className="mt-1 text-xs text-muted">Connected since {connectedAt}</p>
+            )}
+          </div>
+          <Badge variant={connected ? 'success' : 'warning'}>
+            {connected ? 'Connected' : 'Disconnected'}
+          </Badge>
+        </div>
+
+        {connected && (
+          <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              loading={testing}
+              onClick={() => void handleTest()}
+            >
+              Send test message
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              loading={disconnecting}
+              onClick={() => void handleDisconnect()}
+            >
+              Disconnect
+            </Button>
+          </div>
+        )}
+      </Card>
+
+      <Card className="flex flex-col gap-4">
+        <Input
+          label="WhatsApp business number"
+          type="tel"
+          placeholder="+91 98765 43210"
+          value={whatsappNumber}
+          onChange={(e) => setWhatsappNumber(e.target.value)}
+          hint="Include country code. Test messages are sent to this number."
+        />
+
+        <Input
+          label="Phone Number ID"
+          placeholder="From Meta WhatsApp Manager"
+          value={metaPhoneNumberId}
+          onChange={(e) => setMetaPhoneNumberId(e.target.value)}
+        />
+
+        <Input
+          label="WhatsApp Business Account ID (WABA)"
+          placeholder="Meta Business Account ID"
+          value={metaWabaId}
+          onChange={(e) => setMetaWabaId(e.target.value)}
+        />
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="meta-access-token" className="text-sm font-medium text-foreground">
+            Access token
+          </label>
+          <div className="relative">
+            <input
+              id="meta-access-token"
+              type={showToken ? 'text' : 'password'}
+              className={cn(
+                'h-11 w-full rounded-lg border bg-surface px-3 pr-10 text-sm text-foreground',
+                'placeholder:text-muted-light outline-none transition-shadow',
+                'focus:border-primary focus:shadow-[var(--focus-ring)]'
+              )}
+              placeholder={tokenStored ? 'Token saved — enter new value to replace' : 'Paste permanent access token'}
+              value={metaAccessToken}
+              onChange={(e) => setMetaAccessToken(e.target.value)}
+            />
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted hover:text-foreground"
+              onClick={() => setShowToken((v) => !v)}
+              aria-label={showToken ? 'Hide token' : 'Show token'}
+            >
+              {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          <p className="text-xs text-muted">
+            {tokenStored
+              ? 'Leave blank to keep your saved token. Enter a new value to replace it.'
+              : 'Required for sending and receiving WhatsApp messages.'}
+          </p>
+        </div>
+
+        {formError && <Alert variant="error">{formError}</Alert>}
+
+        <div className="flex flex-wrap gap-3">
+          <Button loading={saving} onClick={() => void handleSave()}>
+            Save settings
+          </Button>
+          {!connected && (
+            <Button
+              variant="outline"
+              loading={testing}
+              disabled={!tokenStored && !metaAccessToken.trim()}
+              onClick={() => void handleTest()}
+            >
+              Send test message
+            </Button>
+          )}
+        </div>
+      </Card>
+
+      <Card padding="sm" className="overflow-hidden">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-2 px-2 py-2 text-left"
+          onClick={() => setGuideOpen((v) => !v)}
+          aria-expanded={guideOpen}
+        >
+          <span className="text-sm font-medium text-foreground">How to connect WhatsApp</span>
+          {guideOpen ? (
+            <ChevronUp className="h-4 w-4 shrink-0 text-muted" />
+          ) : (
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted" />
+          )}
+        </button>
+        {guideOpen && (
+          <ol className="flex flex-col gap-2 border-t border-border px-2 pb-2 pt-3 text-sm text-muted">
+            {SETUP_STEPS.map((step, index) => (
+              <li key={step} className="flex gap-2">
+                <span className="font-mono text-xs text-primary">{index + 1}.</span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </Card>
+    </SettingsPageShell>
+  );
+}

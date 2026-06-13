@@ -1,0 +1,44 @@
+{
+  "name": "propagent-backend",
+  "version": "3.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "build": "tsc && node -e \"const fs=require('fs');const p=require('path');fs.copyFileSync('src/db/schema.sql','dist/db/schema.sql');const src='src/db/migrations',dst='dist/db/migrations';if(fs.existsSync(src)){fs.mkdirSync(dst,{recursive:true});for(const f of fs.readdirSync(src))fs.copyFileSync(p.join(src,f),p.join(dst,f));}\"",
+    "start": "node dist/index.js",
+    "migrate": "ts-node src/db/migrate.ts",
+    "seed-superadmin": "ts-node src/db/seed-superadmin.ts",
+    "render-build": "npm install --include=dev && npm run build"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.11.10",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.2.1",
+    "openai": "^6.42.0",
+    "otplib": "^13.4.1",
+    "pg": "^8.13.1",
+    "socket.io": "^4.8.1",
+    "typescript": "^5.7.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node-cron": "^3.0.11",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

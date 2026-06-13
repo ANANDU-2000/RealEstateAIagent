@@ -1,0 +1,47 @@
+---
+description: PropAgent core engineering rules — always apply
+alwaysApply: true
+---
+
+# PropAgent V3 — Core Rules
+
+## Product Identity
+PropAgent is a production SaaS for real estate brokers: WhatsApp AI (Arjun), CRM, properties, booking, analytics.
+Markets: India, UAE, Canada. Brand: PropAgent.
+
+## Stack (DO NOT DEVIATE)
+- Frontend: Next.js + TypeScript + Tailwind on Vercel
+- Backend: Node.js + Express + TypeScript on Render
+- Database: Render PostgreSQL via `pg` pool — **NO Supabase**
+- Auth: Custom JWT + bcrypt — **NO Supabase Auth**
+- Realtime: Socket.IO — **NO Supabase Realtime**
+- Files: Cloudflare R2 — **NO Supabase Storage**
+
+## Absolute Prohibitions
+- NEVER invent API shapes, table columns, or env var names — read schema and types first
+- NEVER create fake seed data, lorem ipsum tenants, or placeholder properties for "demo"
+- NEVER guess prices, property details, or AI responses — use real DB data only
+- NEVER use Supabase client, RLS, or Supabase Auth in new code
+- NEVER store money as JavaScript float — use BIGINT/DECIMAL in DB, parse carefully in TS
+- NEVER query tenant data without `WHERE tenant_id = $1` from authenticated JWT
+- NEVER return 4xx/5xx to WhatsApp webhook — always 200
+
+## Multi-Tenant Isolation
+Every DB query for tenant-scoped tables MUST include `tenant_id` from `req.tenantId`.
+No exceptions. Cross-tenant leaks are critical severity.
+
+## Code Quality
+- TypeScript strict mode — explicit types on all API payloads
+- Async/await with try/catch on all route handlers
+- Validate all client input before DB writes
+- Use DB transactions for multi-table writes; rollback on failure
+- Log errors with context; never swallow silently
+
+## Build Order
+Follow `files/build-order-prompts.md` — auth before dashboard, properties before webhook, webhook before chats.
+
+## Reference Docs
+- Schema: `backend/src/db/schema.sql`
+- AI prompt: `files/ai-system-prompt-v3.md`
+- Deployment: `render-postgres-only.md`
+- Progress: `docs/tracking/`
