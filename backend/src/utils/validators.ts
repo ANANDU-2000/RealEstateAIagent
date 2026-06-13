@@ -39,6 +39,28 @@ export const saClientPlanSchema = z.object({
   aiMessageLimit: z.number().int().min(0).max(100000),
 });
 
+export const saClientUsageSchema = z
+  .object({
+    aiMessageLimit: z.number().int().min(0).max(100000).optional(),
+    resetUsage: z.boolean().optional(),
+    monthlyPricePaise: z.number().int().min(0).max(999_999_999).nullable().optional(),
+    monthlyPriceCurrency: z.enum(['INR', 'AED', 'CAD']).optional(),
+  })
+  .refine(
+    (data) =>
+      data.aiMessageLimit !== undefined ||
+      data.resetUsage === true ||
+      data.monthlyPricePaise !== undefined ||
+      data.monthlyPriceCurrency !== undefined,
+    { message: 'Provide at least one field to update' }
+  );
+
+export const saDuplicateClientSchema = z.object({
+  email: z.string().email(),
+  businessName: z.string().min(2).max(200).optional(),
+  ownerName: z.string().min(2).max(200).optional(),
+});
+
 export const saPromptSchema = z.object({
   content: z.string().min(50, 'Prompt is too short'),
 });

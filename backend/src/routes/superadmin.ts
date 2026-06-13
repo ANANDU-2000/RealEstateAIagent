@@ -3,8 +3,10 @@ import { verifySync } from 'otplib';
 import { pool } from '../db';
 import {
   createTenantAccount,
+  duplicateTenantAccount,
   generateTemporaryPassword,
 } from '../services/tenant.service';
+import { invalidatePromptCache } from '../services/ai.service';
 import {
   findSuperAdminByEmail,
   logSaAction,
@@ -15,7 +17,9 @@ import { requireSaAuth, type SaRequest } from '../middleware/saAuth';
 import {
   saClientPlanSchema,
   saClientStatusSchema,
+  saClientUsageSchema,
   saCreateClientSchema,
+  saDuplicateClientSchema,
   saLoginSchema,
   saPromptSchema,
 } from '../utils/validators';
@@ -78,13 +82,19 @@ router.get('/clients', async (req: SaRequest, res: Response) => {
     ai_message_limit: number;
     is_suspended: boolean;
     is_blocked: boolean;
+    ai_reset_date: Date | null;
+    monthly_price_paise: number | null;
+    monthly_price_currency: string | null;
   }>(
     `SELECT t.client_id, t.business_name, t.owner_name, t.email, t.country,
             t.plan, t.status, t.created_at,
             COALESCE(cp.ai_messages_used, 0) AS ai_messages_used,
             COALESCE(cp.ai_message_limit, 0) AS ai_message_limit,
             COALESCE(cp.is_suspended, false) AS is_suspended,
-            COALESCE(cp.is_blocked, false) AS is_blocked
+            COALESCE(cp.is_blocked, false) AS is_blocked,
+            cp.ai_reset_date,
+            cp.monthly_price_paise,
+            cp.monthly_price_currency
      FROM tenants t
      LEFT JOIN client_plans cp ON cp.tenant_id = t.id
      ORDER BY t.created_at DESC
@@ -103,6 +113,9 @@ router.get('/clients', async (req: SaRequest, res: Response) => {
       joinedAt: row.created_at,
       aiUsed: row.ai_messages_used,
       aiLimit: row.ai_message_limit,
+      aiResetDate: row.ai_reset_date,
+      monthlyPricePaise: row.monthly_price_paise,
+      monthlyPriceCurrency: row.monthly_price_currency ?? 'INR',
       isSuspended: row.is_suspended,
       isBlocked: row.is_blocked,
     })),
@@ -235,6 +248,8 @@ router.patch('/prompt', async (req: SaRequest, res: Response) => {
       version: nextVersion,
     });
 
+    invalidatePromptCache();
+
     res.json({ ok: true, version: nextVersion });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -326,6 +341,112 @@ router.patch('/clients/:clientId/plan', async (req: SaRequest, res: Response) =>
   });
 
   res.json({ ok: true });
+});
+
+router.patch('/clients/:clientId/usage', async (req: SaRequest, res: Response) => {
+  const parsed = saClientUsageSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' });
+    return;
+  }
+
+  const tenantResult = await pool.query<{ id: string }>(
+    `SELECT id FROM tenants WHERE client_id = $1`,
+    [req.params.clientId]
+  );
+  const tenant = tenantResult.rows[0];
+  if (!tenant) {
+    res.status(404).json({ error: 'Client not found' });
+    return;
+  }
+
+  const updates: string[] = ['updated_at = NOW()'];
+  const values: unknown[] = [tenant.id];
+  let paramIndex = 2;
+
+  if (parsed.data.aiMessageLimit !== undefined) {
+    updates.push(`ai_message_limit = $${paramIndex++}`);
+    values.push(parsed.data.aiMessageLimit);
+  }
+
+  if (parsed.data.resetUsage) {
+    updates.push('ai_messages_used = 0');
+    updates.push(
+      `ai_reset_date = (DATE_TRUNC('month', NOW()) + INTERVAL '1 month')::DATE`
+    );
+  }
+
+  if (parsed.data.monthlyPricePaise !== undefined) {
+    updates.push(`monthly_price_paise = $${paramIndex++}`);
+    values.push(parsed.data.monthlyPricePaise);
+  }
+
+  if (parsed.data.monthlyPriceCurrency !== undefined) {
+    updates.push(`monthly_price_currency = $${paramIndex++}`);
+    values.push(parsed.data.monthlyPriceCurrency);
+  }
+
+  await pool.query(
+    `UPDATE client_plans SET ${updates.join(', ')} WHERE tenant_id = $1`,
+    values
+  );
+
+  await logSaAction(req.saEmail ?? 'unknown', 'update_client_usage', 'tenant', tenant.id, {
+    clientId: req.params.clientId,
+    ...parsed.data,
+  });
+
+  res.json({ ok: true });
+});
+
+router.post('/clients/:clientId/duplicate', async (req: SaRequest, res: Response) => {
+  const parsed = saDuplicateClientSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' });
+    return;
+  }
+
+  const tenantResult = await pool.query<{ id: string }>(
+    `SELECT id FROM tenants WHERE client_id = $1`,
+    [req.params.clientId]
+  );
+  const tenant = tenantResult.rows[0];
+  if (!tenant) {
+    res.status(404).json({ error: 'Client not found' });
+    return;
+  }
+
+  const temporaryPassword = generateTemporaryPassword();
+
+  try {
+    const duplicated = await duplicateTenantAccount({
+      sourceTenantId: tenant.id,
+      email: parsed.data.email,
+      businessName: parsed.data.businessName,
+      ownerName: parsed.data.ownerName,
+      password: temporaryPassword,
+    });
+
+    await logSaAction(req.saEmail ?? 'unknown', 'duplicate_client', 'tenant', duplicated.id, {
+      sourceClientId: req.params.clientId,
+      newClientId: duplicated.clientId,
+      email: duplicated.email,
+    });
+
+    res.status(201).json({
+      client: duplicated,
+      temporaryPassword,
+      loginUrl: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/login`,
+      message: 'Duplicate client created. WhatsApp is not copied — connect separately.',
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === 'EMAIL_EXISTS') {
+      res.status(409).json({ error: 'An account with this email already exists' });
+      return;
+    }
+    console.error('SA duplicate client error:', err);
+    res.status(500).json({ error: 'Could not duplicate client. Please try again.' });
+  }
 });
 
 export default router;

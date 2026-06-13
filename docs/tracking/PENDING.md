@@ -2,29 +2,47 @@
 
 Items waiting on external input or manual dashboard steps.
 
-## Render Environment Variables (MCP)
-**Status:** MCP `update_environment_variables` returned 500 — set manually in Render Dashboard  
-**Service:** `srv-d8idu0vlk1mc7382kgog` → Environment tab  
-**Required vars:** See `.env.example` at repo root. Minimum for Stage 2:
-- `NODE_ENV=production`
-- `PORT=3001`
-- `DATABASE_URL` (internal URL from Render Postgres dashboard)
-- `FRONTEND_URL` (Vercel URL once connected)
-- `JWT_SECRET`, `REFRESH_TOKEN_SECRET`, `SA_JWT_SECRET` (64+ char random strings)
-- `ALLOW_PUBLIC_SIGNUP=false` (default — brokers created by Super Admin only)
-- `R2_ACCOUNT_ID`, `R2_BUCKET_NAME=propagent-files`
+## Render Backend — RESOLVED (2026-06-13)
 
-## Critical — Render Service Misconfiguration
-**Status:** Action required  
-**Issue:** Render service `srv-d8idu0vlk1mc7382kgog` is configured as **Ruby** with wrong build/start commands.  
-**Fix:** Update via Render Dashboard or MCP `update_web_service`:
-- Runtime: `node`
-- Root Directory: `backend`
-- Build Command: `npm install && npm run build`
-- Start Command: `npm start`
-- Health Check Path: `/health`
+**Service:** `srv-d8idu0vlk1mc7382kgog`  
+**URL:** https://realestateaiagent-0ubp.onrender.com  
+**Health:** `GET /health` → `{ ok: true, db: "connected" }`
 
-Until fixed, pushes to GitHub will not deploy a working Node.js API.
+Fixed via Render API:
+- Runtime: **Node** (was Ruby)
+- Build: `npm install --include=dev && npm run build`
+- Start: `npm start`
+- Health check: `/health`
+- Env vars set (JWT secrets, DATABASE_URL, FRONTEND_URL, etc.)
+- `RUN_MIGRATIONS=false` after first successful migration deploy
+
+**Super Admin seeded:**
+- Email: `admin@propagent.in`
+- Password: set during deploy — rotate in Render/production if exposed
+- Login: `/superadmin/login`
+
+## Vercel Project Connection
+**Status:** Action required — production still returns **404** (`DEPLOYMENT_NOT_FOUND`)  
+**Domain:** `https://real-estate-a-i-agent.vercel.app`
+
+Vercel CLI is installed but **not authenticated** (`vercel login` required).
+
+**Required Vercel Dashboard settings:**
+1. Connect GitHub repo `ANANDU-2000/RealEstateAIagent`
+2. Root Directory: `frontend`
+3. Environment Variables:
+   - `NEXT_PUBLIC_API_URL=https://realestateaiagent-0ubp.onrender.com`
+   - `NEXT_PUBLIC_APP_NAME=PropAgent`
+4. Redeploy from latest `main`
+
+**Or via CLI after login:**
+```bash
+cd frontend
+vercel link
+vercel env add NEXT_PUBLIC_API_URL production   # https://realestateaiagent-0ubp.onrender.com
+vercel env add NEXT_PUBLIC_APP_NAME production  # PropAgent
+vercel --prod
+```
 
 ## Cloudflare R2 — S3 Access Keys
 **Status:** Blocked  
@@ -35,37 +53,7 @@ Until fixed, pushes to GitHub will not deploy a working Node.js API.
 2. Create token with Object Read & Write
 3. Create bucket `propagent-files`
 4. Enable public access or custom domain for `R2_PUBLIC_URL`
-5. Add to `backend/.env` and Render env vars:
-   - `R2_ACCESS_KEY_ID`
-   - `R2_SECRET_ACCESS_KEY`
-   - `R2_PUBLIC_URL`
-
-## Vercel Project Connection
-**Status:** Fix in progress — production returned `DEPLOYMENT_NOT_FOUND` (404 on all routes)  
-**Domain:** `https://real-estate-a-i-agent.vercel.app`
-
-**Repo config (updated):**
-- Root `vercel.json` — `npm install --include=dev`, `npm run build:frontend`, output `frontend/.next`
-- `frontend/vercel.json` — use when Root Directory is set to `frontend` in dashboard
-
-**Required Vercel Dashboard settings:**
-1. Project → Settings → General → **Root Directory:** `frontend` (recommended)  
-   OR leave blank and use root `vercel.json`
-2. Environment Variables:
-   - `NEXT_PUBLIC_API_URL=https://realestateaiagent-0ubp.onrender.com`
-   - `NEXT_PUBLIC_APP_NAME=PropAgent`
-3. Redeploy from latest `main` after push
-
-**Live routes after successful deploy:**
-- `/` — home with Broker sign in + Super Admin link
-- `/login` — broker login (invite-only; `/signup` redirects here)
-- `/superadmin/login`, `/superadmin/clients` — create clients, share Client ID + temp password
-- `/onboarding`, `/chats`
-
-**First Super Admin (one-time on Render shell or local with DATABASE_URL):**
-```bash
-cd backend && npm run seed-superadmin -- admin@yourdomain.com YourSecurePassword "Admin Name"
-```
+5. Add to Render env vars: `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_URL`
 
 ## API Keys Not Yet Provided
 | Key | Required For | Stage |
@@ -77,29 +65,22 @@ cd backend && npm run seed-superadmin -- admin@yourdomain.com YourSecurePassword
 | `STRIPE_*` | UAE/Canada billing | Later |
 
 ## Security Reminder
-All secrets pasted in chat should be **rotated** after setup:
-- Cloudflare API token
-- Render MCP API key
+Rotate credentials after setup if exposed in chat or logs:
+- Render API key (MCP)
 - Render DB password
-- JWT secrets (already generated fresh locally)
+- Super Admin password
+- JWT secrets (already set in Render env)
 
 ## Render Postgres 90-Day Free Tier
-Set calendar reminder at day 80 to backup and rotate DB per `render-postgres-only.md` STEP 9.
+DB `Real-Estate-DB` expires **2026-07-07**. Set calendar reminder at day 80 to backup per `render-postgres-only.md` STEP 9.
+
+## Optional Ops
+- **UptimeRobot:** monitor `https://realestateaiagent-0ubp.onrender.com/health` every 5 min
 
 ## Schema Migrations (before UI tasks)
 
-See [SCHEMA-GAPS.md](./SCHEMA-GAPS.md). Do not build UI for fields without a DB column.
+M1–M3 applied on production via `RUN_MIGRATIONS=true` deploy. See [SCHEMA-GAPS.md](./SCHEMA-GAPS.md).
 
-| Migration | Blocks task | Notes |
-|-----------|-------------|-------|
-| M1 | 3.4 Property Details | `land_type`, `status` on properties |
-| M2 | 3.6 Videos/Documents tabs | New tables |
-| M3 | 4.1, 4.4, 4.6 Settings | timezone, logo, JSONB prefs |
-| M4 | 4.7, 7.12 Billing | invoices, subscriptions, payments |
-| M5 | 7.14–7.19 Super Admin | sa_api_keys, feature_flags, etc. |
-| M6 | 6.3 Leads timeline | Optional activity_log |
-| M7 | 2.6 Forgot password | password_reset_tokens |
-
-**R2 keys** block task **3.5** (Property Photos).  
-**META_* keys** block task **5.1** (WhatsApp webhook).  
-**ANTHROPIC_API_KEY** blocks task **5.2** (AI service).
+**R2 keys** block full **3.5** photo file upload (URL photos work).  
+**META_* keys** needed to test live WhatsApp webhook.  
+**ANTHROPIC_API_KEY** needed to test live AI replies.

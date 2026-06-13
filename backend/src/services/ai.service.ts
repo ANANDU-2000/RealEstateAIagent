@@ -33,13 +33,16 @@ export type AIResponseResult = {
   fallback_used: boolean;
 };
 
+type AIProvider = 'anthropic' | 'openai';
+
 const PROMPT_PATH = path.resolve(__dirname, '../../../files/ai-system-prompt-v3.md');
 const AI_TIMEOUT_MS = 8000;
 
-let cachedTemplate: string | null = null;
+let cachedFileTemplate: string | null = null;
+let cachedDbPrompt: { version: number; content: string } | null = null;
 
-function loadMasterPromptTemplate(): string {
-  if (cachedTemplate) return cachedTemplate;
+function loadMasterPromptTemplateFromFile(): string {
+  if (cachedFileTemplate) return cachedFileTemplate;
 
   const content = fs.readFileSync(PROMPT_PATH, 'utf-8');
   const marker = '## THE MASTER SYSTEM PROMPT';
@@ -55,12 +58,39 @@ function loadMasterPromptTemplate(): string {
     throw new Error('Master prompt code fence not found in ai-system-prompt-v3.md');
   }
 
-  cachedTemplate = afterMarker.slice(openFence + 4, closeFence).trim();
-  return cachedTemplate;
+  cachedFileTemplate = afterMarker.slice(openFence + 4, closeFence).trim();
+  return cachedFileTemplate;
 }
 
-export function buildSystemPrompt(params: BuildSystemPromptParams): string {
-  let prompt = loadMasterPromptTemplate();
+async function loadMasterPromptTemplate(): Promise<string> {
+  try {
+    const result = await pool.query<{ content: string; version: number }>(
+      `SELECT content, version FROM prompt_versions
+       WHERE is_active = true
+       ORDER BY version DESC
+       LIMIT 1`
+    );
+
+    const row = result.rows[0];
+    if (row?.content?.trim()) {
+      if (!cachedDbPrompt || cachedDbPrompt.version !== row.version) {
+        cachedDbPrompt = { version: row.version, content: row.content.trim() };
+      }
+      return cachedDbPrompt.content;
+    }
+  } catch (error) {
+    console.error('Failed to load prompt from DB, using file fallback:', error);
+  }
+
+  return loadMasterPromptTemplateFromFile();
+}
+
+export function invalidatePromptCache(): void {
+  cachedDbPrompt = null;
+}
+
+export async function buildSystemPrompt(params: BuildSystemPromptParams): Promise<string> {
+  let prompt = await loadMasterPromptTemplate();
 
   const replacements: Record<string, string> = {
     workspace_name: params.workspace_name,
@@ -87,9 +117,26 @@ export function buildSystemPrompt(params: BuildSystemPromptParams): string {
   return prompt;
 }
 
+function resolvePrimaryProvider(): AIProvider {
+  const configured = (process.env.AI_PRIMARY_PROVIDER ?? 'auto').toLowerCase();
+  const hasAnthropic = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
+  const hasOpenAI = Boolean(process.env.OPENAI_API_KEY?.trim());
+
+  if (configured === 'openai') return 'openai';
+  if (configured === 'anthropic') return 'anthropic';
+
+  if (hasOpenAI && !hasAnthropic) return 'openai';
+  if (hasAnthropic && !hasOpenAI) return 'anthropic';
+  if (hasAnthropic) return 'anthropic';
+  if (hasOpenAI) return 'openai';
+
+  throw new Error('No AI provider configured (set ANTHROPIC_API_KEY or OPENAI_API_KEY)');
+}
+
 async function callAnthropic(
   systemPrompt: string,
-  history: ChatMessage[]
+  history: ChatMessage[],
+  fallbackUsed: boolean
 ): Promise<AIResponseResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -139,7 +186,7 @@ async function callAnthropic(
       model_used: data.model ?? (process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-20250514'),
       input_tokens: data.usage?.input_tokens ?? 0,
       output_tokens: data.usage?.output_tokens ?? 0,
-      fallback_used: false,
+      fallback_used: fallbackUsed,
     };
   } finally {
     clearTimeout(timeout);
@@ -148,50 +195,59 @@ async function callAnthropic(
 
 async function callOpenAI(
   systemPrompt: string,
-  history: ChatMessage[]
+  history: ChatMessage[],
+  fallbackUsed: boolean
 ): Promise<AIResponseResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY not configured');
   }
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
-      max_tokens: Number(process.env.ANTHROPIC_MAX_TOKENS ?? 400),
-      temperature: Number(process.env.ANTHROPIC_TEMPERATURE ?? 0.3),
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...history.map((m) => ({ role: m.role, content: m.content })),
-      ],
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`OpenAI API error ${response.status}: ${body}`);
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
+        max_tokens: Number(process.env.OPENAI_MAX_TOKENS ?? process.env.ANTHROPIC_MAX_TOKENS ?? 400),
+        temperature: Number(process.env.OPENAI_TEMPERATURE ?? process.env.ANTHROPIC_TEMPERATURE ?? 0.3),
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...history.map((m) => ({ role: m.role, content: m.content })),
+        ],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`OpenAI API error ${response.status}: ${body}`);
+    }
+
+    const data = (await response.json()) as {
+      choices: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+      model?: string;
+    };
+
+    const text = data.choices[0]?.message?.content?.trim() ?? '';
+
+    return {
+      text,
+      model_used: data.model ?? (process.env.OPENAI_MODEL ?? 'gpt-4o-mini'),
+      input_tokens: data.usage?.prompt_tokens ?? 0,
+      output_tokens: data.usage?.completion_tokens ?? 0,
+      fallback_used: fallbackUsed,
+    };
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const data = (await response.json()) as {
-    choices: Array<{ message?: { content?: string } }>;
-    usage?: { prompt_tokens?: number; completion_tokens?: number };
-    model?: string;
-  };
-
-  const text = data.choices[0]?.message?.content?.trim() ?? '';
-
-  return {
-    text,
-    model_used: data.model ?? (process.env.OPENAI_MODEL ?? 'gpt-4o-mini'),
-    input_tokens: data.usage?.prompt_tokens ?? 0,
-    output_tokens: data.usage?.completion_tokens ?? 0,
-    fallback_used: true,
-  };
 }
 
 function estimateCostUsd(
@@ -240,18 +296,38 @@ export async function getAIResponse(
   tenantId: string,
   conversationId?: string | null
 ): Promise<AIResponseResult> {
+  const primary = resolvePrimaryProvider();
+  const fallbackEnabled = process.env.OPENAI_FALLBACK_ENABLED !== 'false';
   let result: AIResponseResult;
 
   try {
-    result = await callAnthropic(systemPrompt, history);
-  } catch (anthropicError) {
-    console.error('Anthropic failed, trying OpenAI fallback:', anthropicError);
+    if (primary === 'openai') {
+      result = await callOpenAI(systemPrompt, history, false);
+    } else {
+      result = await callAnthropic(systemPrompt, history, false);
+    }
+  } catch (primaryError) {
+    console.error(`${primary} failed, trying fallback:`, primaryError);
 
-    if (process.env.OPENAI_FALLBACK_ENABLED === 'false') {
-      throw anthropicError;
+    if (!fallbackEnabled) {
+      throw primaryError;
     }
 
-    result = await callOpenAI(systemPrompt, history);
+    try {
+      if (primary === 'openai') {
+        result = await callAnthropic(systemPrompt, history, true);
+      } else {
+        result = await callOpenAI(systemPrompt, history, true);
+      }
+    } catch (fallbackError) {
+      console.error('AI fallback also failed:', fallbackError);
+      throw primaryError;
+    }
+  }
+
+  if (!result.text.trim()) {
+    result.text =
+      'Thanks for your message. Our team will follow up with you shortly with the details you need.';
   }
 
   await logAiUsage({

@@ -283,6 +283,9 @@ export type SaClient = {
   joinedAt: string;
   aiUsed: number;
   aiLimit: number;
+  aiResetDate?: string | null;
+  monthlyPricePaise?: number | null;
+  monthlyPriceCurrency?: string;
   isSuspended?: boolean;
   isBlocked?: boolean;
 };
@@ -337,17 +340,38 @@ export async function saLogin(
   totpCode?: string
 ): Promise<SaLoginResult> {
   const headers = new Headers({ 'Content-Type': 'application/json' });
-  const response = await fetch(`${API_BASE_URL}/superadmin/login`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ email, password, totpCode }),
-  });
+  let response: Response;
 
-  const data = (await response.json()) as SaLoginResult & { error?: string; requiresTotp?: boolean };
+  try {
+    response = await fetch(`${API_BASE_URL}/superadmin/login`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ email, password, totpCode }),
+    });
+  } catch {
+    throw {
+      error:
+        'Cannot reach the PropAgent API. Check your internet connection or contact your administrator.',
+      status: 0,
+    } satisfies SaLoginError;
+  }
+
+  let data: SaLoginResult & { error?: string; requiresTotp?: boolean };
+  try {
+    data = (await response.json()) as SaLoginResult & {
+      error?: string;
+      requiresTotp?: boolean;
+    };
+  } catch {
+    throw {
+      error: 'Unexpected server response. Please try again.',
+      status: response.status,
+    } satisfies SaLoginError;
+  }
 
   if (!response.ok) {
     throw {
-      error: data.error ?? response.statusText,
+      error: data.error ?? 'Invalid email or password.',
       status: response.status,
       requiresTotp: data.requiresTotp,
     } satisfies SaLoginError;
@@ -390,14 +414,47 @@ export async function saUpdateClientStatus(
 export async function saUpdateClientPlan(
   token: string,
   clientId: string,
-  plan: 'starter' | 'pro' | 'agency' | 'trial'
+  plan: 'starter' | 'pro' | 'agency' | 'trial',
+  aiMessageLimit?: number
 ): Promise<{ ok: boolean }> {
   return apiFetch(
     `/superadmin/clients/${clientId}/plan`,
     {
       method: 'PATCH',
-      body: JSON.stringify({ plan, aiMessageLimit: SA_PLAN_AI_LIMITS[plan] }),
+      body: JSON.stringify({
+        plan,
+        aiMessageLimit: aiMessageLimit ?? SA_PLAN_AI_LIMITS[plan],
+      }),
     },
+    token
+  );
+}
+
+export async function saUpdateClientUsage(
+  token: string,
+  clientId: string,
+  payload: {
+    aiMessageLimit?: number;
+    resetUsage?: boolean;
+    monthlyPricePaise?: number | null;
+    monthlyPriceCurrency?: 'INR' | 'AED' | 'CAD';
+  }
+): Promise<{ ok: boolean }> {
+  return apiFetch(
+    `/superadmin/clients/${clientId}/usage`,
+    { method: 'PATCH', body: JSON.stringify(payload) },
+    token
+  );
+}
+
+export async function saDuplicateClient(
+  token: string,
+  clientId: string,
+  payload: { email: string; businessName?: string; ownerName?: string }
+): Promise<SaCreateClientResult> {
+  return apiFetch(
+    `/superadmin/clients/${clientId}/duplicate`,
+    { method: 'POST', body: JSON.stringify(payload) },
     token
   );
 }

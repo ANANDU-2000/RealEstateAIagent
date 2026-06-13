@@ -564,7 +564,7 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
 
     const history = await buildConversationHistory(conversation.id);
     const promptParams = await buildPromptContext(tenant.tenant_id);
-    const systemPrompt = buildSystemPrompt(promptParams);
+    const systemPrompt = await buildSystemPrompt(promptParams);
 
     const aiResult = await getAIResponse(
       systemPrompt,

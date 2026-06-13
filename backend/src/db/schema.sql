@@ -106,6 +106,8 @@ CREATE TABLE IF NOT EXISTS client_plans (
   can_use_video            BOOLEAN DEFAULT false,
   is_suspended             BOOLEAN DEFAULT false,
   is_blocked               BOOLEAN DEFAULT false,
+  monthly_price_paise      BIGINT,
+  monthly_price_currency   VARCHAR(5) DEFAULT 'INR',
   updated_at               TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -20,7 +20,7 @@ export function SaShell({ children }: { children: React.ReactNode }) {
   const isLoginPage = pathname === '/superadmin/login';
 
   if (isLoginPage) {
-    return <>{children}</>;
+    return <div className="min-h-screen bg-[#0F172A]">{children}</div>;
   }
 
   return (

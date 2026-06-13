@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Copy, Plus } from 'lucide-react';
+import { Copy, Plus, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -12,8 +12,10 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useSaAuth } from '@/hooks/useSaAuth';
 import {
   saGetStats,
+  saDuplicateClient,
   saUpdateClientPlan,
   saUpdateClientStatus,
+  saUpdateClientUsage,
   type SaClient,
   type SaCreateClientResult,
   type SaStats,
@@ -68,6 +70,10 @@ export default function SuperAdminClientsPage() {
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState<SaCreateClientResult | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [limitDrafts, setLimitDrafts] = useState<Record<string, string>>({});
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const [duplicateFor, setDuplicateFor] = useState<SaClient | null>(null);
+  const [duplicateForm, setDuplicateForm] = useState({ email: '', businessName: '', ownerName: '' });
 
   const [form, setForm] = useState({
     businessName: '',
@@ -170,6 +176,109 @@ export default function SuperAdminClientsPage() {
     }
   }
 
+  async function handleSaveLimit(clientId: string) {
+    if (!token) return;
+    const raw = limitDrafts[clientId];
+    const limit = Number(raw);
+    if (!Number.isFinite(limit) || limit < 0) {
+      setError('Enter a valid AI message limit (0 or higher).');
+      return;
+    }
+    setActionLoading(`${clientId}-limit`);
+    setError(null);
+    try {
+      await saUpdateClientUsage(token, clientId, { aiMessageLimit: limit });
+      await load();
+    } catch (err) {
+      setError(
+        err && typeof err === 'object' && 'error' in err
+          ? String((err as { error: string }).error)
+          : 'Could not update AI limit.'
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleResetUsage(clientId: string) {
+    if (!token) return;
+    setActionLoading(`${clientId}-reset`);
+    setError(null);
+    try {
+      await saUpdateClientUsage(token, clientId, { resetUsage: true });
+      await load();
+    } catch (err) {
+      setError(
+        err && typeof err === 'object' && 'error' in err
+          ? String((err as { error: string }).error)
+          : 'Could not reset AI usage.'
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleSavePrice(clientId: string, currency: 'INR' | 'AED' | 'CAD') {
+    if (!token) return;
+    const raw = priceDrafts[clientId]?.trim();
+    const paise =
+      raw === '' || raw === undefined
+        ? null
+        : Math.round(Number(raw) * 100);
+    if (paise !== null && (!Number.isFinite(paise) || paise < 0)) {
+      setError('Enter a valid monthly price.');
+      return;
+    }
+    setActionLoading(`${clientId}-price`);
+    setError(null);
+    try {
+      await saUpdateClientUsage(token, clientId, {
+        monthlyPricePaise: paise,
+        monthlyPriceCurrency: currency,
+      });
+      await load();
+    } catch (err) {
+      setError(
+        err && typeof err === 'object' && 'error' in err
+          ? String((err as { error: string }).error)
+          : 'Could not update monthly price.'
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleDuplicate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token || !duplicateFor) return;
+    setActionLoading(`${duplicateFor.clientId}-duplicate`);
+    setError(null);
+    try {
+      const result = await saDuplicateClient(token, duplicateFor.clientId, {
+        email: duplicateForm.email,
+        businessName: duplicateForm.businessName || undefined,
+        ownerName: duplicateForm.ownerName || undefined,
+      });
+      setCreated(result);
+      setDuplicateFor(null);
+      setDuplicateForm({ email: '', businessName: '', ownerName: '' });
+      await load();
+    } catch (err) {
+      setError(
+        err && typeof err === 'object' && 'error' in err
+          ? String((err as { error: string }).error)
+          : 'Could not duplicate client.'
+      );
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  function formatMonthlyPrice(paise: number | null | undefined, currency: string | undefined): string {
+    if (paise == null) return '';
+    return (paise / 100).toString();
+  }
+
   function copyCredentials() {
     if (!created) return;
     const text = `PropAgent login\nClient ID: ${created.client.clientId}\nEmail: ${created.client.email}\nTemporary password: ${created.temporaryPassword}\nSign in: ${created.loginUrl}`;
@@ -243,6 +352,41 @@ export default function SuperAdminClientsPage() {
             <Copy className="h-4 w-4" />
             Copy for WhatsApp / email
           </Button>
+        </Card>
+      )}
+
+      {duplicateFor && (
+        <Card className="mb-6 border-[#334155] bg-[#1E293B] p-4 text-white">
+          <h2 className="mb-4 font-semibold">
+            Duplicate {duplicateFor.clientId} — copies AI settings & limits (not WhatsApp or leads)
+          </h2>
+          <form onSubmit={handleDuplicate} className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="New email"
+              type="email"
+              value={duplicateForm.email}
+              onChange={(e) => setDuplicateForm({ ...duplicateForm, email: e.target.value })}
+              required
+            />
+            <Input
+              label="Business name (optional)"
+              value={duplicateForm.businessName}
+              onChange={(e) => setDuplicateForm({ ...duplicateForm, businessName: e.target.value })}
+            />
+            <Input
+              label="Owner name (optional)"
+              value={duplicateForm.ownerName}
+              onChange={(e) => setDuplicateForm({ ...duplicateForm, ownerName: e.target.value })}
+            />
+            <div className="flex items-end gap-2 sm:col-span-2">
+              <Button type="submit" loading={actionLoading === `${duplicateFor.clientId}-duplicate`}>
+                Duplicate & generate password
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setDuplicateFor(null)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
         </Card>
       )}
 
@@ -323,32 +467,38 @@ export default function SuperAdminClientsPage() {
       )}
 
       <div className="overflow-x-auto rounded-xl border border-[#334155]">
-        <table className="w-full min-w-[960px] text-left text-sm">
+        <table className="w-full min-w-[1200px] text-left text-sm">
           <thead className="bg-[#1E293B] text-[#94A3B8]">
             <tr>
               <th className="px-4 py-3 font-medium">Client</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Plan</th>
-              <th className="px-4 py-3 font-medium">AI usage</th>
+              <th className="px-4 py-3 font-medium">AI usage / limit</th>
+              <th className="px-4 py-3 font-medium">Monthly price</th>
               <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-[#94A3B8]">
+                <td colSpan={6} className="px-4 py-8 text-center text-[#94A3B8]">
                   Loading…
                 </td>
               </tr>
             ) : clients.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-[#94A3B8]">
+                <td colSpan={6} className="px-4 py-8 text-center text-[#94A3B8]">
                   No clients yet. Create your first broker account.
                 </td>
               </tr>
             ) : (
               clients.map((c) => {
                 const busy = actionLoading?.startsWith(c.clientId) ?? false;
+                const currency = (c.monthlyPriceCurrency ?? 'INR') as 'INR' | 'AED' | 'CAD';
+                const limitValue = limitDrafts[c.clientId] ?? String(c.aiLimit);
+                const priceValue =
+                  priceDrafts[c.clientId] ??
+                  formatMonthlyPrice(c.monthlyPricePaise, c.monthlyPriceCurrency);
                 return (
                   <tr key={c.clientId} className="border-t border-[#334155]">
                     <td className="px-4 py-3">
@@ -389,6 +539,69 @@ export default function SuperAdminClientsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <AiUsageBar used={c.aiUsed} limit={c.aiLimit} />
+                      {c.aiResetDate && (
+                        <p className="mt-1 text-[10px] text-[#64748B]">
+                          Resets {new Date(c.aiResetDate).toLocaleDateString()}
+                        </p>
+                      )}
+                      <div className="mt-2 flex flex-wrap items-center gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          value={limitValue}
+                          disabled={busy}
+                          onChange={(e) =>
+                            setLimitDrafts({ ...limitDrafts, [c.clientId]: e.target.value })
+                          }
+                          className="h-8 w-20 rounded border border-[#334155] bg-[#0F172A] px-2 text-xs text-white"
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          loading={actionLoading === `${c.clientId}-limit`}
+                          disabled={busy}
+                          onClick={() => void handleSaveLimit(c.clientId)}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-[#94A3B8]"
+                          loading={actionLoading === `${c.clientId}-reset`}
+                          disabled={busy}
+                          onClick={() => void handleResetUsage(c.clientId)}
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          Reset
+                        </Button>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="—"
+                          value={priceValue}
+                          disabled={busy}
+                          onChange={(e) =>
+                            setPriceDrafts({ ...priceDrafts, [c.clientId]: e.target.value })
+                          }
+                          className="h-8 w-24 rounded border border-[#334155] bg-[#0F172A] px-2 text-xs text-white"
+                        />
+                        <span className="text-xs text-[#94A3B8]">{currency}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          loading={actionLoading === `${c.clientId}-price`}
+                          disabled={busy}
+                          onClick={() => void handleSavePrice(c.clientId, currency)}
+                        >
+                          Save
+                        </Button>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
@@ -438,6 +651,21 @@ export default function SuperAdminClientsPage() {
                             Block
                           </Button>
                         )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={busy}
+                          onClick={() => {
+                            setDuplicateFor(c);
+                            setDuplicateForm({
+                              email: '',
+                              businessName: `${c.businessName} (Copy)`,
+                              ownerName: c.ownerName ?? '',
+                            });
+                          }}
+                        >
+                          Duplicate
+                        </Button>
                       </div>
                     </td>
                   </tr>
