@@ -1,5 +1,62 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
+function superadminUrl(path: string): string {
+  const normalized = path.startsWith('/superadmin') ? path : `/superadmin${path}`;
+  if (typeof window !== 'undefined') {
+    return `/api${normalized}`;
+  }
+  return `${API_BASE_URL}${normalized}`;
+}
+
+async function saApiFetch<T>(
+  path: string,
+  options: RequestInit = {},
+  token?: string
+): Promise<T> {
+  const headers = new Headers(options.headers);
+
+  if (!headers.has('Content-Type') && options.body) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(superadminUrl(path), {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw {
+      error:
+        'Cannot reach the PropAgent API. Check your internet connection or contact your administrator.',
+      status: 0,
+    } satisfies ApiError;
+  }
+
+  if (!response.ok) {
+    let message = response.statusText;
+    let requiresTotp: boolean | undefined;
+    try {
+      const body = (await response.json()) as { error?: string; requiresTotp?: boolean };
+      message = body.error ?? message;
+      requiresTotp = body.requiresTotp;
+    } catch {
+      // ignore parse errors
+    }
+    throw { error: message, status: response.status, requiresTotp } satisfies SaLoginError;
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json() as Promise<T>;
+}
+
 export type ApiError = {
   error: string;
   status: number;
@@ -343,7 +400,7 @@ export async function saLogin(
   let response: Response;
 
   try {
-    response = await fetch(`${API_BASE_URL}/superadmin/login`, {
+    response = await fetch(superadminUrl('/superadmin/login'), {
       method: 'POST',
       headers,
       body: JSON.stringify({ email, password, totpCode }),
@@ -381,18 +438,18 @@ export async function saLogin(
 }
 
 export async function saGetStats(token: string): Promise<SaStats> {
-  return apiFetch('/superadmin/stats', {}, token);
+  return saApiFetch('/superadmin/stats', {}, token);
 }
 
 export async function saGetPrompt(token: string): Promise<SaPrompt> {
-  return apiFetch('/superadmin/prompt', {}, token);
+  return saApiFetch('/superadmin/prompt', {}, token);
 }
 
 export async function saUpdatePrompt(
   token: string,
   content: string
 ): Promise<{ ok: boolean; version: number }> {
-  return apiFetch(
+  return saApiFetch(
     '/superadmin/prompt',
     { method: 'PATCH', body: JSON.stringify({ content }) },
     token
@@ -404,7 +461,7 @@ export async function saUpdateClientStatus(
   clientId: string,
   action: 'suspend' | 'unsuspend' | 'block' | 'unblock'
 ): Promise<{ ok: boolean }> {
-  return apiFetch(
+  return saApiFetch(
     `/superadmin/clients/${clientId}/status`,
     { method: 'PATCH', body: JSON.stringify({ action }) },
     token
@@ -417,7 +474,7 @@ export async function saUpdateClientPlan(
   plan: 'starter' | 'pro' | 'agency' | 'trial',
   aiMessageLimit?: number
 ): Promise<{ ok: boolean }> {
-  return apiFetch(
+  return saApiFetch(
     `/superadmin/clients/${clientId}/plan`,
     {
       method: 'PATCH',
@@ -440,7 +497,7 @@ export async function saUpdateClientUsage(
     monthlyPriceCurrency?: 'INR' | 'AED' | 'CAD';
   }
 ): Promise<{ ok: boolean }> {
-  return apiFetch(
+  return saApiFetch(
     `/superadmin/clients/${clientId}/usage`,
     { method: 'PATCH', body: JSON.stringify(payload) },
     token
@@ -452,7 +509,7 @@ export async function saDuplicateClient(
   clientId: string,
   payload: { email: string; businessName?: string; ownerName?: string }
 ): Promise<SaCreateClientResult> {
-  return apiFetch(
+  return saApiFetch(
     `/superadmin/clients/${clientId}/duplicate`,
     { method: 'POST', body: JSON.stringify(payload) },
     token
@@ -460,7 +517,7 @@ export async function saDuplicateClient(
 }
 
 export async function saListClients(token: string): Promise<{ clients: SaClient[] }> {
-  return apiFetch('/superadmin/clients', {}, token);
+  return saApiFetch('/superadmin/clients', {}, token);
 }
 
 export async function saCreateClient(
@@ -475,7 +532,7 @@ export async function saCreateClient(
     trialDays: number;
   }
 ): Promise<SaCreateClientResult> {
-  return apiFetch(
+  return saApiFetch(
     '/superadmin/clients',
     { method: 'POST', body: JSON.stringify(payload) },
     token
