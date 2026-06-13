@@ -3,25 +3,28 @@ import { cn } from '@/lib/utils';
 type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
   label?: string;
   error?: string;
+  hint?: string;
   options: { value: string; label: string }[];
 };
 
-export function Select({ label, error, options, className, id, ...props }: SelectProps) {
+export function Select({ label, error, hint, options, className, id, ...props }: SelectProps) {
   const selectId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
 
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={selectId} className="text-sm font-medium text-foreground">
+        <label htmlFor={selectId} className="text-[13px] font-medium text-foreground leading-none">
           {label}
         </label>
       )}
       <select
         id={selectId}
         className={cn(
-          'h-11 w-full rounded-lg border border-border bg-surface px-3 text-sm',
-          'outline-none focus:border-primary focus:shadow-[var(--focus-ring)]',
-          error && 'border-danger',
+          'h-10 w-full rounded-[var(--radius-md)] border border-border bg-surface px-3 text-sm text-foreground',
+          'outline-none transition-all duration-150',
+          'hover:border-border-dark',
+          'focus:border-primary focus:shadow-[var(--focus-ring)]',
+          error && 'border-danger focus:border-danger focus:shadow-[var(--error-ring)]',
           className
         )}
         {...props}
@@ -32,7 +35,8 @@ export function Select({ label, error, options, className, id, ...props }: Selec
           </option>
         ))}
       </select>
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && <p className="text-xs text-danger leading-none">{error}</p>}
+      {hint && !error && <p className="text-xs text-muted leading-none">{hint}</p>}
     </div>
   );
 }

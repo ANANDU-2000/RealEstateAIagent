@@ -110,7 +110,7 @@ export function PropertyPhotosTab({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <form onSubmit={(e) => void handleAdd(e)} className="flex flex-col gap-3">
         <Input
           label="Photo URL"
@@ -148,7 +148,7 @@ export function PropertyPhotosTab({
           {photos.map((photo) => (
             <div
               key={photo.id}
-              className="group relative overflow-hidden rounded-lg border border-border bg-surface"
+              className="group relative overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface transition-shadow hover:shadow-[var(--shadow-sm)]"
             >
               <div className="aspect-[4/3] bg-surface-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}

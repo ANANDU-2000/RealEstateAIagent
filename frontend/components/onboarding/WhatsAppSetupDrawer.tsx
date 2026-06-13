@@ -78,9 +78,9 @@ export function WhatsAppSetupDrawer({
       />
       <div
         className={cn(
-          'relative z-10 flex w-full max-w-md flex-col gap-5 rounded-t-[20px] bg-surface p-6 shadow-lg',
-          'sm:rounded-[20px] sm:scale-100',
-          'animate-toast'
+          'relative z-10 flex w-full max-w-md flex-col gap-5 rounded-t-[var(--radius-2xl)] bg-surface p-6 shadow-[var(--shadow-lg)]',
+          'sm:rounded-[var(--radius-2xl)] sm:scale-100',
+          'animate-scale-in'
         )}
       >
         <div className="flex items-start justify-between gap-4">

@@ -1,16 +1,33 @@
 import { cn } from '@/lib/utils';
 
 type CardProps = React.HTMLAttributes<HTMLDivElement> & {
-  padding?: 'sm' | 'md' | 'lg';
+  padding?: 'none' | 'sm' | 'md' | 'lg';
+  hover?: boolean;
+  bordered?: boolean;
 };
 
-const paddingMap = { sm: 'p-4', md: 'p-6', lg: 'p-8' };
+const paddingMap = {
+  none: '',
+  sm: 'p-4',
+  md: 'p-5',
+  lg: 'p-6',
+};
 
-export function Card({ padding = 'md', className, children, ...props }: CardProps) {
+export function Card({
+  padding = 'md',
+  hover = false,
+  bordered = true,
+  className,
+  children,
+  ...props
+}: CardProps) {
   return (
     <div
       className={cn(
-        'rounded-xl border border-border bg-surface shadow-[var(--shadow-sm)]',
+        'rounded-[var(--radius-xl)] bg-surface',
+        bordered && 'border border-border',
+        'shadow-[var(--shadow-card)]',
+        hover && 'cursor-pointer transition-shadow duration-200 hover:shadow-[var(--shadow-md)]',
         paddingMap[padding],
         className
       )}

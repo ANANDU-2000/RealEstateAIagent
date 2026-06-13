@@ -76,6 +76,13 @@ function statusLabel(status: string): string {
   return status;
 }
 
+function statusIconClass(status: string): string {
+  if (status === 'overdue') return 'bg-danger-light text-danger';
+  if (status === 'pending') return 'bg-warning-light text-warning';
+  if (status === 'done') return 'bg-success-light text-success';
+  return 'bg-surface-3 text-muted';
+}
+
 export default function CallbacksPage() {
   const router = useRouter();
   const { accessToken, loading: authLoading } = useAuth();
@@ -146,7 +153,7 @@ export default function CallbacksPage() {
 
   if (authLoading || !accessToken) {
     return (
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
         <Skeleton className="mb-6 h-10 w-48" />
         <Skeleton className="h-64 w-full rounded-xl" />
       </div>
@@ -154,10 +161,10 @@ export default function CallbacksPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Callbacks</h1>
-        <p className="mt-1 text-sm text-muted">
+    <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
+      <div>
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground">Callbacks</h1>
+        <p className="mt-1 text-[14px] text-muted">
           Customers who asked Arjun to call them back.
         </p>
       </div>
@@ -229,103 +236,35 @@ export default function CallbacksPage() {
           }
         />
       ) : (
-        <>
-          {/* Desktop table */}
-          <div className="hidden overflow-hidden rounded-xl border border-border bg-surface md:block">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-surface-2 text-left text-xs font-semibold uppercase tracking-wide text-muted">
-                  <th className="px-4 py-3">Customer</th>
-                  <th className="px-4 py-3">Requested Time</th>
-                  <th className="px-4 py-3">Context</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Created</th>
-                  <th className="px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCallbacks.map((callback) => (
-                  <tr
-                    key={callback.id}
-                    className={`border-b border-border last:border-0 ${
-                      callback.status === 'overdue' ? 'border-l-4 border-l-danger' : ''
-                    } ${callback.status === 'done' ? 'opacity-60' : ''}`}
-                  >
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-foreground">
-                        {callback.customerName ?? 'Unknown'}
-                      </p>
-                      <p className="text-xs text-muted">{callback.customerPhone}</p>
-                    </td>
-                    <td className="px-4 py-3 text-muted">
-                      {formatDateTime(callback.requestedTime)}
-                    </td>
-                    <td className="max-w-xs truncate px-4 py-3 text-muted">
-                      {callback.contextNotes ?? '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={statusBadgeVariant(callback.status)}>
-                        {statusLabel(callback.status)}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-muted">
-                      {formatRelativeTime(callback.createdAt)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1.5">
-                        <a href={`tel:${callback.customerPhone}`}>
-                          <Button variant="outline" size="sm">
-                            <Phone className="h-3.5 w-3.5" />
-                            Call
-                          </Button>
-                        </a>
-                        {callback.status !== 'done' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            loading={markingId === callback.id}
-                            onClick={() => handleMarkDone(callback)}
-                          >
-                            <Check className="h-3.5 w-3.5" />
-                            Done
-                          </Button>
-                        )}
-                        {callback.conversationId && (
-                          <Link href={`/chats?conversation=${callback.conversationId}`}>
-                            <Button variant="ghost" size="sm">
-                              <MessageSquare className="h-3.5 w-3.5" />
-                              Open Chat
-                            </Button>
-                          </Link>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile cards */}
-          <div className="space-y-3 md:hidden">
-            {filteredCallbacks.map((callback) => (
-              <Card
-                key={callback.id}
-                padding="sm"
-                className={`${
-                  callback.status === 'overdue' ? 'border-l-4 border-l-danger' : ''
-                } ${callback.status === 'done' ? 'opacity-60' : ''}`}
+        <div className="flex flex-col gap-3">
+          {activeTab === 'overdue' && filteredCallbacks.length > 0 && (
+            <p className="mb-1 text-[12px] font-semibold uppercase tracking-wider text-danger">
+              Overdue — needs attention
+            </p>
+          )}
+          {filteredCallbacks.map((callback) => (
+            <Card
+              key={callback.id}
+              padding="none"
+              className={`flex items-start gap-4 p-4 transition-all duration-150 hover:shadow-[var(--shadow-sm)] ${
+                callback.status === 'overdue' ? 'border-l-4 border-l-danger' : ''
+              } ${callback.status === 'done' ? 'opacity-60' : ''}`}
+            >
+              <div
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${statusIconClass(callback.status)}`}
               >
+                <Phone className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-semibold text-foreground">
+                    <p className="text-[14px] font-semibold text-foreground">
                       {callback.customerName ?? 'Unknown'}
                     </p>
                     <a
                       href={`tel:${callback.customerPhone}`}
-                      className="flex items-center gap-1 text-sm text-primary"
+                      className="mt-0.5 flex items-center gap-1 text-[12px] text-muted hover:text-primary"
                     >
-                      <Phone className="h-3.5 w-3.5" />
                       {callback.customerPhone}
                     </a>
                   </div>
@@ -334,51 +273,45 @@ export default function CallbacksPage() {
                   </Badge>
                 </div>
                 {callback.requestedTime && (
-                  <p className="mt-2 text-xs text-muted">
-                    Requested: {formatDateTime(callback.requestedTime)}
+                  <p className="mt-2 text-[12px] text-muted">
+                    Scheduled: {formatDateTime(callback.requestedTime)}
                   </p>
                 )}
                 {callback.contextNotes && (
-                  <p className="mt-1 text-sm text-muted">{callback.contextNotes}</p>
+                  <p className="mt-1 text-[13px] text-muted">{callback.contextNotes}</p>
                 )}
-                <p className="mt-1 text-xs text-muted-light">
+                <p className="mt-1 text-[11px] text-muted-light">
                   Created {formatRelativeTime(callback.createdAt)}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <a href={`tel:${callback.customerPhone}`} className="flex-1">
-                    <Button variant="outline" size="sm" fullWidth>
-                      <Phone className="h-3.5 w-3.5" />
+                  <a href={`tel:${callback.customerPhone}`}>
+                    <Button variant="outline" size="xs" iconLeft={<Phone className="h-3.5 w-3.5" />}>
                       Call
                     </Button>
                   </a>
                   {callback.status !== 'done' && (
                     <Button
                       variant="outline"
-                      size="sm"
-                      className="flex-1"
+                      size="xs"
                       loading={markingId === callback.id}
                       onClick={() => handleMarkDone(callback)}
+                      iconLeft={<Check className="h-3.5 w-3.5" />}
                     >
-                      <Check className="h-3.5 w-3.5" />
-                      Done
+                      Mark Done
                     </Button>
                   )}
                   {callback.conversationId && (
-                    <Link
-                      href={`/chats?conversation=${callback.conversationId}`}
-                      className="flex-1"
-                    >
-                      <Button variant="ghost" size="sm" fullWidth>
-                        <MessageSquare className="h-3.5 w-3.5" />
-                        Open Chat
+                    <Link href={`/chats?conversation=${callback.conversationId}`}>
+                      <Button variant="ghost" size="xs" iconLeft={<MessageSquare className="h-3.5 w-3.5" />}>
+                        View Chat
                       </Button>
                     </Link>
                   )}
                 </div>
-              </Card>
-            ))}
-          </div>
-        </>
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

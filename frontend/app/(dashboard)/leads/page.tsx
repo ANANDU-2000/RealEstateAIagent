@@ -78,7 +78,7 @@ function LeadKanbanCard({
       onDragStart={onDragStart}
       onClick={onOpen}
       className={cn(
-        'group cursor-grab rounded-lg border border-border bg-surface p-3 shadow-[var(--shadow-sm)] transition-shadow active:cursor-grabbing hover:shadow-md',
+        'group cursor-grab rounded-[var(--radius-lg)] border border-border bg-surface p-3 shadow-[var(--shadow-sm)] transition-shadow active:cursor-grabbing hover:shadow-[var(--shadow-md)]',
         columnBorderClass
       )}
     >
@@ -348,10 +348,10 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-[1600px] flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Leads</h1>
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground">Leads</h1>
           <p className="mt-1 text-sm text-muted">
             Drag cards between stages or open a lead for full history.
           </p>

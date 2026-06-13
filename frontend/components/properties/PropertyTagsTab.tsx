@@ -39,9 +39,9 @@ export function PropertyTagsTab({ tags, onChange }: PropertyTagsTabProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div>
-        <p className="mb-2 text-sm text-muted">
+        <p className="mb-2 text-[13px] text-muted">
           Keywords help Arjun match this property to buyer conversations. Add location and lifestyle
           cues buyers might mention.
         </p>
@@ -82,7 +82,7 @@ export function PropertyTagsTab({ tags, onChange }: PropertyTagsTabProps) {
       {error && <Alert variant="error">{error}</Alert>}
 
       {tags.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-10 text-center">
+        <div className="flex flex-col items-center gap-2 rounded-[var(--radius-lg)] border border-dashed border-border py-10 text-center">
           <Tag className="h-8 w-8 text-muted" />
           <p className="text-sm text-muted">No AI tags yet. Add keywords buyers might search for.</p>
         </div>

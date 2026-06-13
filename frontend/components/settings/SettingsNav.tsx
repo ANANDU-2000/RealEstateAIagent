@@ -35,10 +35,10 @@ export function SettingsNav() {
           return (
             <span
               key={href}
-              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-muted-light cursor-not-allowed"
+              className="flex cursor-not-allowed items-center justify-between rounded-[var(--radius-md)] px-3 py-2 text-[13px] text-muted-light"
               title="Coming soon"
             >
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2.5">
                 <Icon className="h-4 w-4" />
                 {label}
               </span>
@@ -52,9 +52,9 @@ export function SettingsNav() {
             key={href}
             href={href}
             className={cn(
-              'flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors',
+              'flex items-center gap-2.5 rounded-[var(--radius-md)] px-3 py-2 text-[13px] transition-colors duration-100',
               active
-                ? 'bg-primary-light font-medium text-primary'
+                ? 'bg-[var(--primary-muted)] font-semibold text-primary'
                 : 'text-muted hover:bg-surface-2 hover:text-foreground'
             )}
           >

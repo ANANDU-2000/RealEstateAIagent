@@ -8,23 +8,25 @@ const PROOF_POINTS = [
 
 export function AuthBrandPanel() {
   return (
-    <div className="hidden flex-col justify-between bg-sidebar p-12 text-white lg:flex lg:w-[40%]">
-      <div>
+    <div className="relative hidden flex-col justify-between overflow-hidden bg-[#0D1117] px-12 py-12 text-white after:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_30%_50%,rgba(37,99,235,0.08)_0%,transparent_60%)] lg:flex lg:w-[42%]">
+      <div className="relative z-10">
         <div className="flex items-center gap-3">
-          <Building2 className="h-10 w-10 text-primary" />
-          <span className="text-2xl font-bold">PropAgent</span>
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+            <Building2 className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-[22px] font-bold tracking-tight">PropAgent</span>
         </div>
       </div>
 
-      <div className="flex flex-col gap-8">
-        <p className="text-3xl font-bold leading-tight">
-          Never miss a lead.
+      <div className="relative z-10 mt-auto mb-8 flex flex-col gap-8">
+        <p className="text-[36px] font-bold leading-[1.15] tracking-tight text-white">
+          Close every deal.
           <br />
-          Never lose a deal.
+          Before it goes cold.
         </p>
-        <ul className="flex flex-col gap-4">
+        <ul className="flex flex-col gap-3">
           {PROOF_POINTS.map((point) => (
-            <li key={point} className="flex items-center gap-3 text-sm text-white/80">
+            <li key={point} className="flex items-center gap-3 text-[13px] text-white/65">
               <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
               {point}
             </li>
@@ -32,7 +34,9 @@ export function AuthBrandPanel() {
         </ul>
       </div>
 
-      <p className="text-xs text-white/40">© {new Date().getFullYear()} PropAgent</p>
+      <p className="relative z-10 text-[11px] text-white/25">
+        © {new Date().getFullYear()} PropAgent
+      </p>
     </div>
   );
 }

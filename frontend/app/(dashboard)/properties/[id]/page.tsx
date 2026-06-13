@@ -150,18 +150,18 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
 
   if (authLoading || loading || !values) {
     return (
-      <div className="mx-auto max-w-3xl">
-        <Skeleton className="mb-6 h-10 w-48" />
-        <Skeleton className="h-96 w-full rounded-xl" />
+      <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-96 w-full rounded-[var(--radius-xl)]" />
       </div>
     );
   }
 
   if (!property) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
         <Alert variant="error">{error ?? 'Property not found.'}</Alert>
-        <Link href="/properties" className="mt-4 inline-block text-sm text-primary">
+        <Link href="/properties" className="text-[13px] font-medium text-primary hover:underline">
           Back to properties
         </Link>
       </div>
@@ -169,44 +169,36 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
       <Link
         href="/properties"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+        className="inline-flex items-center gap-1 text-[13px] font-medium text-muted hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to properties
       </Link>
 
-      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{property.name}</h1>
-          <p className="text-sm text-muted">Edit property details, photos, and AI tags</p>
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground">{property.name}</h1>
+          <p className="text-[14px] text-muted">Edit property details, photos, and AI tags</p>
         </div>
       </div>
 
-      {error && (
-        <Alert variant="error" className="mb-4">
-          {error}
-        </Alert>
-      )}
-      {success && (
-        <Alert variant="success" className="mb-4">
-          {success}
-        </Alert>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
 
-      <div className="mb-4 flex flex-wrap gap-1 rounded-lg border border-border bg-surface p-1">
+      <div className="flex flex-wrap gap-1 rounded-[var(--radius-lg)] border border-border bg-surface p-1 max-w-3xl">
         {FORM_TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'rounded-md px-4 py-2 text-sm font-medium transition-colors',
+              'rounded-[var(--radius-md)] px-4 py-2 text-[13px] font-medium transition-colors',
               activeTab === tab.id
-                ? 'bg-primary text-white'
-                : 'text-muted hover:bg-surface-2 hover:text-foreground'
+                ? 'bg-surface shadow-[var(--shadow-xs)] font-semibold text-foreground'
+                : 'text-muted hover:text-foreground'
             )}
           >
             {tab.label}
@@ -214,7 +206,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
         ))}
       </div>
 
-      <Card>
+      <Card padding="lg" className="max-w-3xl">
         <form onSubmit={(e) => void handleSave(e)} className="flex flex-col gap-6">
           {activeTab === 'details' && (
             <PropertyForm

@@ -53,8 +53,8 @@ const TABS: { id: LeadDetailTab; label: string }[] = [
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-xs font-medium uppercase tracking-wide text-muted">{label}</span>
-      <span className="text-sm text-foreground">{value}</span>
+      <span className="text-[11px] font-medium uppercase tracking-[0.07em] text-muted">{label}</span>
+      <span className="mt-0.5 text-[13px] text-foreground">{value}</span>
     </div>
   );
 }
@@ -97,13 +97,13 @@ export function LeadDetail({
     <>
       <button
         type="button"
-        className="fixed inset-0 z-30 bg-black/40"
+        className="fixed inset-0 z-30 bg-black/10 backdrop-blur-[1px]"
         onClick={onClose}
         aria-label="Close lead detail"
       />
       <aside
         className={cn(
-          'fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-border bg-surface shadow-xl',
+          'animate-slide-in-right fixed inset-y-0 right-0 z-40 flex w-[440px] max-w-full flex-col border-l border-border bg-surface shadow-[var(--shadow-lg)]',
           'animate-in slide-in-from-right duration-200'
         )}
       >
@@ -116,44 +116,39 @@ export function LeadDetail({
           </div>
         ) : (
           <>
-            <div className="flex items-start justify-between border-b border-border px-4 py-4">
+            <div className="flex shrink-0 items-start justify-between border-b border-border/60 px-6 py-4">
               <div className="flex min-w-0 items-center gap-3">
                 <div
                   className={cn(
-                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold',
+                    'flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[15px] font-bold',
                     getAvatarColor(conversation)
                   )}
                 >
                   {getInitials(conversation.customerName, conversation.customerPhone)}
                 </div>
                 <div className="min-w-0">
-                  <h2 className="truncate font-semibold text-foreground">
+                  <h2 className="truncate text-[17px] font-bold text-foreground">
                     {conversation.customerName ?? conversation.customerPhone}
                   </h2>
-                  <p className="text-sm text-muted">{stageLabel(conversation.leadStage)}</p>
+                  <p className="text-[13px] text-muted">{stageLabel(conversation.leadStage)}</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:bg-surface-2"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close">
+                <X className="h-4 w-4" />
+              </Button>
             </div>
 
-            <div className="flex gap-1 overflow-x-auto border-b border-border px-4 py-2">
+            <div className="flex shrink-0 overflow-x-auto border-b border-border/60 px-4">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    'shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+                    '-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] font-medium transition-colors',
                     activeTab === tab.id
-                      ? 'bg-primary-light text-primary'
-                      : 'text-muted hover:bg-surface-2 hover:text-foreground'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted hover:text-foreground'
                   )}
                 >
                   {tab.label}
@@ -164,9 +159,9 @@ export function LeadDetail({
               ))}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-5">
               {activeTab === 'overview' && (
-                <div className="space-y-6">
+                <div className="flex flex-col gap-5">
                   <section>
                     <div className="mb-2 flex items-center justify-between text-sm">
                       <span className="font-medium">Lead score</span>
@@ -200,7 +195,7 @@ export function LeadDetail({
                     )}
                   </section>
 
-                  <section className="space-y-3">
+                  <section className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <DetailRow label="Phone" value={conversation.customerPhone} />
                     <DetailRow
                       label="Budget"
@@ -250,7 +245,7 @@ export function LeadDetail({
                       Open Chat
                     </Link>
                     <Button
-                      variant="outline"
+                      variant="subtle"
                       size="sm"
                       fullWidth
                       onClick={onMarkUltraHot}
@@ -273,12 +268,12 @@ export function LeadDetail({
                       return (
                         <div
                           key={msg.id}
-                          className="flex gap-3 rounded-lg border border-border bg-surface-2 p-3"
+                          className="relative flex gap-3 border-l-2 border-primary/30 pl-4 pb-4 last:pb-0"
                         >
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-3">
-                            <Icon className="h-4 w-4 text-muted" />
+                          <div className="absolute -left-[11px] top-0 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-3">
+                            <Icon className="h-3.5 w-3.5 text-muted" />
                           </div>
-                          <div className="min-w-0 flex-1">
+                          <div className="min-w-0 flex-1 rounded-[var(--radius-lg)] border border-border bg-surface-2 p-3">
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-xs font-semibold capitalize text-foreground">
                                 {msg.sender === 'customer'
@@ -319,7 +314,7 @@ export function LeadDetail({
                     }}
                     placeholder="Private notes about this lead…"
                     rows={8}
-                    className="w-full resize-none rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-primary focus:shadow-[var(--focus-ring)]"
+                    className="min-h-[120px] w-full resize-none rounded-[var(--radius-lg)] border border-border bg-surface-2 px-3.5 py-3 text-[13px] outline-none focus:border-primary focus:shadow-[var(--focus-ring)]"
                   />
                 </div>
               )}

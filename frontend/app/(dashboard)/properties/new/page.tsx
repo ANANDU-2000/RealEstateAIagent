@@ -84,7 +84,7 @@ export default function NewPropertyPage() {
 
   if (authLoading || !accessToken) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
         <Skeleton className="mb-6 h-10 w-48" />
         <Skeleton className="h-96 w-full rounded-xl" />
       </div>
@@ -92,24 +92,24 @@ export default function NewPropertyPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
       <Link
         href="/properties"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+        className="inline-flex items-center gap-1 text-[13px] font-medium text-muted hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to properties
       </Link>
 
-      <h1 className="mb-6 text-2xl font-bold text-foreground">Add Property</h1>
+      <h1 className="text-[22px] font-bold tracking-tight text-foreground">Add Property</h1>
 
       {error && (
-        <Alert variant="error" className="mb-4">
+        <Alert variant="error">
           {error}
         </Alert>
       )}
 
-      <Card>
+      <Card padding="lg" className="max-w-3xl">
         <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-6">
           <PropertyForm
             values={values}

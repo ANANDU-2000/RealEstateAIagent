@@ -75,10 +75,10 @@ export function SettingsPageShell({
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">{title}</h2>
-        {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+        <h2 className="text-[20px] font-bold tracking-tight text-foreground">{title}</h2>
+        {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
       </div>
-      {children}
+      <div className="flex flex-col gap-5">{children}</div>
     </div>
   );
 }

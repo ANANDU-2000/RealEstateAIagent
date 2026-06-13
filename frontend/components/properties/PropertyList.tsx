@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Home, Search } from 'lucide-react';
+import { Home, ListFilter, Search } from 'lucide-react';
 import { PropertyCard } from '@/components/properties/PropertyCard';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Spinner } from '@/components/ui/Spinner';
 import {
   LAND_PROPERTY_TYPES,
+  PROPERTY_TYPE_OPTIONS,
   listProperties,
   type Property,
   type PropertyListParams,
@@ -49,6 +50,7 @@ function filterProperties(properties: Property[], tab: FilterTab): Property[] {
 
 export function PropertyList({ token }: PropertyListProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [properties, setProperties] = useState<Property[]>([]);
@@ -87,33 +89,43 @@ export function PropertyList({ token }: PropertyListProps) {
     void load();
   }, [load]);
 
-  const filtered = useMemo(
-    () => filterProperties(properties, activeTab),
-    [properties, activeTab]
-  );
+  const filtered = useMemo(() => {
+    let list = filterProperties(properties, activeTab);
+    if (typeFilter !== 'all') {
+      list = list.filter((p) => p.propertyType === typeFilter);
+    }
+    return list;
+  }, [properties, activeTab, typeFilter]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-surface p-1">
-          {FILTER_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                activeTab === tab.id
-                  ? 'bg-primary text-white'
-                  : 'text-muted hover:bg-surface-2 hover:text-foreground'
-              )}
-            >
-              {tab.label}
-            </button>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="h-9 rounded-[var(--radius-md)] border border-border bg-surface px-3 text-[13px] text-foreground outline-none hover:border-border-dark focus:border-primary focus:shadow-[var(--focus-ring)]"
+          aria-label="Filter by property type"
+        >
+          <option value="all">All types</option>
+          {PROPERTY_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
           ))}
-        </div>
-
-        <div className="relative w-full sm:max-w-xs">
+        </select>
+        <select
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value as FilterTab)}
+          className="h-9 rounded-[var(--radius-md)] border border-border bg-surface px-3 text-[13px] text-foreground outline-none hover:border-border-dark focus:border-primary focus:shadow-[var(--focus-ring)]"
+          aria-label="Filter by status"
+        >
+          {FILTER_TABS.map((tab) => (
+            <option key={tab.id} value={tab.id}>
+              {tab.label}
+            </option>
+          ))}
+        </select>
+        <div className="relative min-w-[180px] flex-1 sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <Input
             value={search}
@@ -123,6 +135,33 @@ export function PropertyList({ token }: PropertyListProps) {
             aria-label="Search properties"
           />
         </div>
+        <button
+          type="button"
+          disabled
+          title="Advanced filters coming soon"
+          className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] border border-border bg-surface text-muted opacity-50"
+          aria-label="Advanced filters"
+        >
+          <ListFilter className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-1 rounded-[var(--radius-lg)] border border-border bg-surface p-1">
+        {FILTER_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              'rounded-[var(--radius-md)] px-3 py-1.5 text-[13px] font-medium transition-colors',
+              activeTab === tab.id
+                ? 'bg-surface shadow-[var(--shadow-xs)] font-semibold text-foreground'
+                : 'text-muted hover:text-foreground'
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {error && (
@@ -156,7 +195,7 @@ export function PropertyList({ token }: PropertyListProps) {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((property) => (
             <PropertyCard key={property.id} property={property} />
           ))}

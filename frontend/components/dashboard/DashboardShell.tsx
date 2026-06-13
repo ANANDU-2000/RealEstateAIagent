@@ -90,11 +90,11 @@ function NavLink({
     <Link
       href={item.href}
       className={cn(
-        'flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors',
+        'relative flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-[13px] font-medium transition-colors duration-100',
         compact ? 'flex-col gap-1 px-2 py-2 text-[10px]' : '',
         active
-          ? 'bg-white/10 font-medium text-white'
-          : 'text-white/70 hover:bg-white/10 hover:text-white'
+          ? 'bg-white/10 text-white before:absolute before:bottom-1.5 before:left-0 before:top-1.5 before:w-0.5 before:rounded-r-full before:bg-primary'
+          : 'text-white/55 hover:bg-white/[0.06] hover:text-white/90'
       )}
     >
       <span className="relative">
@@ -107,14 +107,12 @@ function NavLink({
       </span>
       <span className={cn(compact && 'leading-none')}>{item.label}</span>
       {badgeCount > 0 && !compact && (
-        <span
-          className={cn(
-            'ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold',
-            item.badge === 'overdue' ? 'bg-orange text-white' : 'bg-primary text-white'
-          )}
+        <Badge
+          variant={item.badge === 'overdue' ? 'orange' : 'primary'}
+          className="ml-auto h-[18px] min-w-[18px] justify-center px-1.5 py-0 text-[10px] normal-case"
         >
           {badgeCount > 99 ? '99+' : badgeCount}
-        </span>
+        </Badge>
       )}
     </Link>
   );
@@ -165,20 +163,24 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="hidden w-60 shrink-0 flex-col bg-sidebar text-white lg:flex">
-        <div className="border-b border-white/10 px-4 py-5">
+      <aside className="hidden w-[224px] shrink-0 flex-col bg-[#0D1117] text-white lg:flex">
+        <div className="border-b border-white/[0.06] px-5 pb-5 pt-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Building2 className="h-5 w-5 text-white" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <Building2 className="h-4 w-4 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold">{tenant?.businessName ?? 'PropAgent'}</p>
-              <p className="truncate text-xs text-white/50">{tenant?.ownerName ?? 'Broker'}</p>
+              <p className="truncate text-[13px] font-semibold text-white/90">
+                {tenant?.businessName ?? 'PropAgent'}
+              </p>
+              <p className="mt-0.5 truncate text-[11px] text-white/40">
+                {tenant?.ownerName ?? 'Broker'}
+              </p>
             </div>
           </div>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">
+        <nav className="flex flex-1 flex-col gap-8 overflow-y-auto px-3 py-5">
           <div className="flex flex-col gap-1">
             {MAIN_NAV.map((item) => (
               <NavLink
@@ -191,7 +193,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div>
-            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-white/40">
+            <p className="mb-1.5 px-2 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/30">
               Settings
             </p>
             <div className="flex flex-col gap-1">
@@ -207,17 +209,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
         </nav>
 
-        <div className="border-t border-white/10 p-4">
+        <div className="border-t border-white/[0.06] px-3 py-4">
           <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-semibold">
               {initials(tenant?.ownerName)}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{tenant?.ownerName ?? 'Broker'}</p>
-              <Badge
-                variant="primary"
-                className="mt-1 border border-primary/30 bg-primary/20 text-[10px] normal-case text-white"
-              >
+              <p className="truncate text-[13px] font-medium text-white/85">
+                {tenant?.ownerName ?? 'Broker'}
+              </p>
+              <Badge variant="primary" className="mt-1 normal-case">
                 {planLabel(tenant?.plan)}
               </Badge>
             </div>
@@ -225,7 +226,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => void handleLogout()}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-[13px] text-white/55 transition-colors hover:bg-red-500/10 hover:text-red-300"
           >
             <LogOut className="h-4 w-4" />
             Logout
@@ -234,9 +235,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="flex-1 p-4 pb-24 lg:p-6 lg:pb-6">{children}</main>
+        <main className="flex-1 animate-fade-in px-8 py-7 pb-28 lg:pb-8">{children}</main>
 
-        <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border bg-surface px-1 py-1 lg:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border/80 bg-surface/95 px-1 py-2 backdrop-blur-md lg:hidden">
           {MOBILE_NAV.map((item) => (
             <div key={item.href} className="flex flex-1 justify-center">
               <NavLink

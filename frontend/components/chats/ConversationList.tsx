@@ -46,13 +46,15 @@ export function ConversationList({
   const tabCounts = getTabCounts(conversations);
 
   return (
-    <div className="flex h-full min-h-0 flex-col border-r border-border bg-surface">
-      <div className="border-b border-border px-4 py-4">
+    <div className="flex h-full min-h-0 w-[300px] shrink-0 flex-col border-r border-border bg-surface">
+      <div className="border-b border-border/60 px-4 pb-3 pt-5">
         <div className="mb-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-foreground">Live Chats</h2>
+            <h2 className="text-[15px] font-semibold text-foreground">Live Chats</h2>
             {unreadCount > 0 && (
-              <Badge variant="primary">{unreadCount} unread</Badge>
+              <Badge variant="primary" className="ml-2">
+                {unreadCount}
+              </Badge>
             )}
           </div>
         </div>
@@ -64,7 +66,7 @@ export function ConversationList({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search conversations..."
-            className="h-10 w-full rounded-lg border border-border bg-surface-2 pl-9 pr-9 text-sm outline-none focus:border-primary focus:shadow-[var(--focus-ring)]"
+            className="h-9 w-full rounded-[var(--radius-md)] border border-border bg-surface-2 pl-9 pr-9 text-[13px] outline-none transition-all hover:border-border-dark focus:border-primary focus:shadow-[var(--focus-ring)]"
           />
           {searchQuery && (
             <button
@@ -79,21 +81,21 @@ export function ConversationList({
         </div>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto border-b border-border px-3 py-2">
+      <div className="flex gap-0 overflow-x-auto border-b border-border/60 px-3 py-2">
         {CHAT_TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => onTabChange(tab.id)}
             className={cn(
-              'shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+              'shrink-0 px-3 py-1.5 text-[12px] transition-colors',
               activeTab === tab.id
-                ? 'bg-primary text-white'
-                : 'bg-surface-2 text-muted hover:bg-surface-3'
+                ? 'rounded-[var(--radius-sm)] bg-surface-3 font-semibold text-foreground'
+                : 'text-muted hover:text-foreground'
             )}
           >
             {tab.label}
-            <span className="ml-1 opacity-80">({tabCounts[tab.id]})</span>
+            <span className="ml-1 text-[10px] font-bold text-muted/70">({tabCounts[tab.id]})</span>
           </button>
         ))}
       </div>
@@ -135,17 +137,17 @@ export function ConversationList({
                     type="button"
                     onClick={() => onSelect(conversation.id)}
                     className={cn(
-                      'relative flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2',
-                      isSelected && 'bg-primary-light'
+                      'relative flex w-full cursor-pointer items-start gap-3 border-b border-border/40 px-3 py-3.5 text-left transition-colors duration-100 hover:bg-surface-2',
+                      isSelected && 'border-l-2 border-l-primary bg-[var(--primary-muted)]'
                     )}
                   >
                     {conversation.unread && (
-                      <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-primary" />
+                      <span className="absolute right-3 top-4 mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                     )}
 
                     <div
                       className={cn(
-                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold',
+                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold',
                         getAvatarColor(conversation)
                       )}
                     >
@@ -154,12 +156,12 @@ export function ConversationList({
 
                     <div className="min-w-0 flex-1 pr-4">
                       <div className="mb-0.5 flex items-center justify-between gap-2">
-                        <span className="truncate font-semibold text-foreground">{displayName}</span>
-                        <span className="shrink-0 text-[11px] text-muted">
+                        <span className="truncate text-[13px] font-semibold text-foreground">{displayName}</span>
+                        <span className="shrink-0 text-[11px] text-muted/70">
                           {formatRelativeTime(conversation.lastMessageAt)}
                         </span>
                       </div>
-                      <p className="mb-1 truncate text-sm text-muted">
+                      <p className="mt-0.5 truncate text-[12px] text-muted">
                         {truncatePreview(conversation.lastMessagePreview)}
                       </p>
                       <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>

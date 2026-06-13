@@ -30,9 +30,9 @@ type ProfilePanelProps = {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs font-medium uppercase tracking-wide text-muted">{label}</span>
-      <span className="text-sm text-foreground">{value}</span>
+    <div className="flex flex-col gap-0.5 px-4 py-2.5">
+      <span className="text-[11px] text-muted">{label}</span>
+      <span className="text-[13px] font-medium text-foreground">{value}</span>
     </div>
   );
 }
@@ -79,7 +79,7 @@ export function ProfilePanel({
   const scoreLabel = getLeadScoreLabel(conversation.leadScore);
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-y-auto border-l border-border bg-surface xl:w-[280px] xl:shrink-0">
+    <div className="animate-slide-in-right flex h-full min-h-0 w-full flex-col overflow-y-auto border-l border-border bg-surface xl:w-[280px] xl:shrink-0">
       {onClose && (
         <div className="flex items-center justify-between border-b border-border px-4 py-3 xl:hidden">
           <h3 className="font-semibold text-foreground">Customer Profile</h3>
@@ -141,7 +141,7 @@ export function ProfilePanel({
           {tags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {tags.map((tag) => (
-                <Badge key={tag} variant="default">
+                <Badge key={tag} variant="muted">
                   {tag}
                 </Badge>
               ))}
@@ -149,8 +149,10 @@ export function ProfilePanel({
           )}
         </section>
 
-        <section className="space-y-3 border-t border-border pt-4">
-          <h4 className="text-sm font-semibold text-foreground">Details</h4>
+        <section className="space-y-1 border-t border-border/60 pt-4">
+          <h4 className="px-4 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+            Details
+          </h4>
           <DetailRow
             label="Budget"
             value={formatBudget(conversation.budgetMin, conversation.budgetMax, country)}
@@ -178,9 +180,11 @@ export function ProfilePanel({
           />
         </section>
 
-        <section className="space-y-2 border-t border-border pt-4">
-          <h4 className="text-sm font-semibold text-foreground">Actions</h4>
-          <div className="grid gap-2">
+        <section className="space-y-2 border-t border-border/60 pt-4">
+          <h4 className="px-4 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+            Actions
+          </h4>
+          <div className="grid gap-2 px-4">
             <a
               href={`tel:${conversation.customerPhone}`}
               className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-semibold text-foreground hover:bg-surface-2"
@@ -211,11 +215,13 @@ export function ProfilePanel({
           </div>
         </section>
 
-        <section className="space-y-2 border-t border-border pt-4">
-          <div className="flex items-center gap-2">
+        <section className="space-y-2 border-t border-border/60 pt-4">
+          <div className="flex items-center gap-2 px-4 pb-2 pt-5">
             <StickyNote className="h-4 w-4 text-muted" />
-            <h4 className="text-sm font-semibold text-foreground">Notes</h4>
-            {savingNotes && <span className="text-xs text-muted">Saving…</span>}
+            <h4 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+              Notes
+            </h4>
+            {savingNotes && <span className="text-[11px] text-muted">Saving…</span>}
           </div>
           <textarea
             value={notes}
@@ -227,18 +233,20 @@ export function ProfilePanel({
             }}
             placeholder="Private broker notes…"
             rows={4}
-            className="w-full resize-none rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-primary focus:shadow-[var(--focus-ring)]"
+            className="mx-4 min-h-[120px] w-[calc(100%-2rem)] resize-none rounded-[var(--radius-lg)] border border-border bg-surface-2 px-3.5 py-3 text-[13px] outline-none focus:border-primary focus:shadow-[var(--focus-ring)]"
           />
         </section>
 
         {escalations.length > 0 && (
-          <section className="space-y-2 border-t border-border pt-4">
-            <h4 className="text-sm font-semibold text-foreground">Escalations</h4>
-            <ul className="space-y-2">
+          <section className="space-y-2 border-t border-border/60 pt-4">
+            <h4 className="px-4 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+              Escalations
+            </h4>
+            <ul className="space-y-2 px-4">
               {escalations.map((esc) => (
                 <li
                   key={esc.id}
-                  className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm"
+                  className="rounded-[var(--radius-lg)] border border-border bg-surface-2 px-3 py-2.5 text-[13px]"
                 >
                   <div className="font-medium capitalize text-foreground">
                     {esc.escalationType.replace(/_/g, ' ')}

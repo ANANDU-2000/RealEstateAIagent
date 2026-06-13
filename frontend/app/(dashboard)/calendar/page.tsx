@@ -255,7 +255,7 @@ export default function CalendarPage() {
 
   if (authLoading || !accessToken) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
         <Skeleton className="mb-6 h-10 w-48" />
         <Skeleton className="h-96 w-full rounded-xl" />
       </div>
@@ -263,11 +263,11 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Calendar</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground">Calendar</h1>
+          <p className="mt-0.5 text-[14px] text-muted">
             Site visits, office meetings, and callbacks in one view.
           </p>
         </div>
@@ -289,7 +289,7 @@ export default function CalendarPage() {
           Next
           <ChevronRight className="h-4 w-4" />
         </Button>
-        <span className="ml-2 text-sm font-semibold text-foreground">
+        <span className="ml-2 text-[16px] font-semibold text-foreground">
           {formatMonthYear(weekStart)}
         </span>
       </div>
@@ -331,7 +331,9 @@ export default function CalendarPage() {
                         <div
                           key={day.toISOString()}
                           className={`border-l border-border p-2 text-center text-xs font-semibold ${
-                            isToday ? 'bg-primary-light text-primary' : 'text-foreground'
+                            isToday
+                              ? 'rounded-[var(--radius-md)] bg-primary text-white'
+                              : 'text-foreground'
                           }`}
                         >
                           {formatDayLabel(day)}
@@ -463,12 +465,12 @@ export default function CalendarPage() {
                     className={`rounded-lg border border-border border-l-4 bg-surface-2 p-3 ${getMeetingBorderColor(meeting)}`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold text-muted">
-                        {formatTime(new Date(meeting.scheduledAt))} ·{' '}
-                        {meetingTypeLabel(meeting.meetingType)}
+                      <span className="rounded-[var(--radius-sm)] bg-primary-muted px-2 py-0.5 font-mono text-[11px] text-primary">
+                        {formatTime(new Date(meeting.scheduledAt))}
                       </span>
+                      <span className="text-[11px] text-muted">{meetingTypeLabel(meeting.meetingType)}</span>
                     </div>
-                    <p className="mt-1 font-semibold text-foreground">
+                    <p className="mt-1 text-[13px] font-medium text-foreground">
                       {meeting.customerName ?? 'Unknown'}
                     </p>
                     {meeting.customerPhone && (
@@ -494,7 +496,7 @@ export default function CalendarPage() {
       {/* Book visit modal */}
       {showBookModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl border border-border bg-surface shadow-lg">
+          <div className="w-full max-w-md rounded-[var(--radius-xl)] border border-border bg-surface shadow-[var(--shadow-lg)]">
             <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <h2 className="text-lg font-bold text-foreground">Book Visit</h2>
               <button

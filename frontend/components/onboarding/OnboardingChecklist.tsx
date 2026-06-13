@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  CheckCircle2,
-  Circle,
+  Building2,
+  Check,
   ChevronRight,
-  MessageSquare,
-  Home,
+  Circle,
   Clock,
+  Home,
   MapPin,
+  MessageSquare,
   UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -69,24 +70,21 @@ export function OnboardingChecklist() {
 
   if (authLoading || (loading && !status)) {
     return (
-      <div className="mx-auto flex w-full max-w-[500px] flex-col gap-6 p-6">
-        <Skeleton className="h-8 w-3/4" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-3 w-full rounded-full" />
-        <Card className="flex flex-col gap-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </Card>
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
+        <div className="w-full max-w-[560px]">
+          <Skeleton className="mb-4 h-64 w-full rounded-[var(--radius-2xl)]" />
+        </div>
       </div>
     );
   }
 
   if (error && !status) {
     return (
-      <div className="mx-auto flex w-full max-w-[500px] flex-col gap-4 p-6">
-        <Alert variant="error">{error}</Alert>
-        <Button onClick={() => void loadStatus()}>Try again</Button>
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
+        <div className="flex w-full max-w-[560px] flex-col gap-4">
+          <Alert variant="error">{error}</Alert>
+          <Button onClick={() => void loadStatus()}>Try again</Button>
+        </div>
       </div>
     );
   }
@@ -149,6 +147,7 @@ export function OnboardingChecklist() {
   const progressPct = Math.round(
     (status.quickStepsCompleted / status.quickStepsTotal) * 100
   );
+  const firstIncompleteIndex = items.findIndex((item) => !item.done);
 
   function handleItemClick(item: ChecklistItem) {
     if (item.done) return;
@@ -161,78 +160,98 @@ export function OnboardingChecklist() {
 
   return (
     <>
-      <div className="mx-auto flex min-h-screen w-full max-w-[500px] flex-col gap-6 p-6">
-        <div className="flex flex-col gap-2 pt-4">
-          <h1 className="text-2xl font-bold text-foreground">
-            Welcome, {status.ownerName.split(' ')[0]}!
-          </h1>
-          <p className="text-sm text-muted">
-            {status.aiName} is ready to go. Just 4 quick steps.
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between text-xs text-muted">
-            <span>Setup progress</span>
-            <span>
-              {status.quickStepsCompleted} of {status.quickStepsTotal} steps
-            </span>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-surface-3">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-500"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-        </div>
-
-        <Card padding="sm" className="flex flex-col divide-y divide-border">
-          {items.map((item) => {
-            const Icon = item.icon;
-            const isClickable = !item.done && item.action;
-
-            return (
-              <button
-                key={item.id}
-                type="button"
-                disabled={!isClickable}
-                onClick={() => handleItemClick(item)}
-                className={cn(
-                  'flex w-full items-center gap-3 px-4 py-4 text-left transition-colors',
-                  isClickable && 'cursor-pointer hover:bg-surface-2',
-                  !isClickable && item.done && 'cursor-default',
-                  !isClickable && !item.done && 'cursor-default opacity-60'
-                )}
-              >
-                {item.done ? (
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
-                ) : (
-                  <Circle className="h-5 w-5 shrink-0 text-border" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 shrink-0 text-muted" />
-                    <span className="text-sm font-medium text-foreground">{item.label}</span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-muted">{item.description}</p>
-                </div>
-                {isClickable && <ChevronRight className="h-4 w-4 shrink-0 text-muted" />}
-              </button>
-            );
-          })}
-        </Card>
-
-        <p className="text-center text-xs text-muted leading-relaxed">
-          Test {status.aiName}: text your WhatsApp number &quot;Hi&quot; and watch the magic
-          once WhatsApp is connected.
-        </p>
-
-        <Link
-          href="/chats"
-          className="text-center text-sm font-medium text-primary hover:underline"
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
+        <Card
+          padding="lg"
+          className="w-full max-w-[560px] rounded-[var(--radius-2xl)] p-8 shadow-[var(--shadow-lg)]"
         >
-          Skip for now — go to dashboard →
-        </Link>
+          <div className="mb-6 flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <Building2 className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-[15px] font-semibold text-foreground">PropAgent</span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <h1 className="text-[22px] font-bold tracking-tight text-foreground">
+              Welcome, {status.ownerName.split(' ')[0]}!
+            </h1>
+            <p className="text-[14px] text-muted">
+              {status.aiName} is ready to go. Just 4 quick steps.
+            </p>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-2">
+            <div className="flex items-center justify-between text-[12px] text-muted">
+              <span>Setup progress</span>
+              <span>
+                {status.quickStepsCompleted} of {status.quickStepsTotal} steps
+              </span>
+            </div>
+            <div className="h-1 w-full overflow-hidden rounded-full bg-surface-3">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-500"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col">
+            {items.map((item, index) => {
+              const Icon = item.icon;
+              const isClickable = !item.done && item.action;
+              const isCurrent = !item.done && index === firstIncompleteIndex;
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  disabled={!isClickable}
+                  onClick={() => handleItemClick(item)}
+                  className={cn(
+                    'flex w-full items-start gap-4 border-b border-border/60 py-4 text-left last:border-0',
+                    isClickable && 'cursor-pointer hover:bg-surface-2/60',
+                    !isClickable && item.done && 'cursor-default',
+                    !isClickable && !item.done && 'cursor-default opacity-60'
+                  )}
+                >
+                  {item.done ? (
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success text-white">
+                      <Check className="h-3.5 w-3.5" />
+                    </div>
+                  ) : isCurrent ? (
+                    <div className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-primary ring-offset-2">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+                    </div>
+                  ) : (
+                    <Circle className="mt-0.5 h-6 w-6 shrink-0 text-surface-3" strokeWidth={1.5} />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 shrink-0 text-muted" />
+                      <span className="text-[14px] font-semibold text-foreground">{item.label}</span>
+                    </div>
+                    <p className="mt-0.5 text-[13px] text-muted">{item.description}</p>
+                  </div>
+                  {isClickable && <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted" />}
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="mt-6 text-center text-[12px] leading-relaxed text-muted">
+            Test {status.aiName}: text your WhatsApp number &quot;Hi&quot; once WhatsApp is connected.
+          </p>
+
+          <div className="mt-6 border-t border-border/60 pt-5 text-center">
+            <Link
+              href="/chats"
+              className="text-[12px] text-muted underline hover:text-foreground"
+            >
+              Skip setup — go to dashboard
+            </Link>
+          </div>
+        </Card>
       </div>
 
       <WhatsAppSetupDrawer

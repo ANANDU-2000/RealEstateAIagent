@@ -58,7 +58,7 @@ function ChangeBadge({ value }: { value: number | null }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-0.5 text-xs font-semibold',
+        'inline-flex items-center gap-0.5 text-[12px] font-semibold',
         up ? 'text-success' : 'text-danger'
       )}
     >
@@ -84,23 +84,23 @@ function StatCard({
   accentClass?: string;
 }) {
   return (
-    <Card padding="sm" className="flex flex-col gap-2">
+    <Card padding="sm" className="flex flex-col gap-3">
       <div className="flex items-start justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted">{title}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">{title}</span>
         <div
           className={cn(
-            'flex h-8 w-8 items-center justify-center rounded-lg bg-primary-light text-primary',
+            'flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] bg-primary-muted text-primary',
             accentClass
           )}
         >
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <div className="flex items-end gap-2">
-        <span className="text-2xl font-bold text-foreground">{value}</span>
+      <div className="mt-1 flex items-end gap-2">
+        <span className="text-[28px] font-bold leading-none text-foreground">{value}</span>
         {change !== undefined && <ChangeBadge value={change} />}
       </div>
-      {sub && <p className="text-xs text-muted">{sub}</p>}
+      {sub && <p className="text-[12px] text-muted">{sub}</p>}
     </Card>
   );
 }
@@ -172,10 +172,10 @@ function LeadsBarChart({ data, range }: { data: AnalyticsData['leadsPerDay']; ra
                 y={y}
                 width={barW}
                 height={Math.max(barH, d.count > 0 ? 2 : 0)}
-                rx={2}
+                rx={4}
                 className={cn(
                   'fill-primary transition-opacity',
-                  hovered !== null && hovered !== i && 'opacity-40'
+                  hovered !== null && hovered !== i && 'opacity-30'
                 )}
               />
               {showLabel && (
@@ -193,7 +193,7 @@ function LeadsBarChart({ data, range }: { data: AnalyticsData['leadsPerDay']; ra
         })}
       </svg>
       {hovered !== null && (
-        <div className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 rounded-md border border-border bg-surface px-2 py-1 text-xs shadow-md">
+        <div className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 rounded-[var(--radius-md)] border border-border bg-surface px-2 py-1 text-xs shadow-[var(--shadow-md)]">
           <span className="font-semibold">{chartData[hovered].label}</span>
           <span className="text-muted"> · {chartData[hovered].count} leads</span>
         </div>
@@ -265,7 +265,7 @@ function LeadsDonutChart({ data }: { data: AnalyticsData['leadsByPropertyType'] 
           </text>
         </svg>
         {hovered !== null && segments[hovered] && (
-          <div className="absolute left-1/2 top-0 -translate-x-1/2 rounded-md border border-border bg-surface px-2 py-1 text-xs shadow-md">
+          <div className="absolute left-1/2 top-0 -translate-x-1/2 rounded-[var(--radius-md)] border border-border bg-surface px-2 py-1 text-xs shadow-[var(--shadow-md)]">
             {formatPropertyTypeLabel(segments[hovered].propertyType)} · {segments[hovered].count} (
             {segments[hovered].pct.toFixed(0)}%)
           </div>
@@ -339,24 +339,24 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground">Analytics</h1>
+          <p className="mt-1 text-[14px] text-muted">
             Lead pipeline, property performance, and AI usage for your brokerage.
           </p>
         </div>
-        <div className="flex rounded-lg border border-border p-0.5">
+        <div className="flex gap-1 rounded-[var(--radius-lg)] border border-border bg-surface p-1">
           {RANGE_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
               onClick={() => setRange(opt.value)}
               className={cn(
-                'rounded-md px-3 py-1.5 text-sm font-semibold transition-colors',
+                'rounded-[var(--radius-md)] px-3 py-1.5 text-[13px] font-medium transition-colors',
                 range === opt.value
-                  ? 'bg-primary-light text-primary'
+                  ? 'bg-surface shadow-[var(--shadow-xs)] font-semibold text-foreground'
                   : 'text-muted hover:text-foreground'
               )}
             >
@@ -389,12 +389,14 @@ export default function AnalyticsPage() {
               value={data.totalLeads}
               change={data.totalLeadsChange}
               icon={Users}
+              accentClass="bg-primary-muted text-primary"
             />
             <StatCard
               title="Visits Booked"
               value={data.meetingsBooked}
               change={data.meetingsBookedChange}
               icon={CalendarCheck}
+              accentClass="bg-success-light text-success"
             />
             <StatCard
               title="Ultra Hot"
@@ -411,6 +413,7 @@ export default function AnalyticsPage() {
                   : undefined
               }
               icon={MessageSquare}
+              accentClass="bg-purple-light text-purple"
             />
           </div>
 
@@ -420,30 +423,32 @@ export default function AnalyticsPage() {
               value={`${data.callbacksDone} done`}
               sub={`${data.callbacksPending} pending`}
               icon={PhoneCall}
+              accentClass="bg-warning-light text-warning"
             />
-            <StatCard title="Cold Leads" value={data.coldLeads} icon={Snowflake} />
+            <StatCard title="Cold Leads" value={data.coldLeads} icon={Snowflake} accentClass="bg-surface-3 text-muted" />
             <StatCard
               title="Low Budget"
               value={data.lowBudgetEscalations}
               sub="escalations"
               icon={Flame}
-              accentClass="bg-warning-light text-warning"
+              accentClass="bg-danger-light text-danger"
             />
             <StatCard
               title="Conversion Rate"
               value={`${data.conversionRate}%`}
               sub="leads → visit booked"
               icon={TrendingUp}
+              accentClass="bg-success-light text-success"
             />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
-              <h2 className="mb-4 text-sm font-semibold text-foreground">Leads per day</h2>
+              <h2 className="mb-5 text-[13px] font-semibold text-foreground">Leads per day</h2>
               <LeadsBarChart data={data.leadsPerDay} range={range} />
             </Card>
             <Card>
-              <h2 className="mb-4 text-sm font-semibold text-foreground">Leads by property type</h2>
+              <h2 className="mb-5 text-[13px] font-semibold text-foreground">Leads by property type</h2>
               <LeadsDonutChart data={data.leadsByPropertyType} />
             </Card>
           </div>
@@ -452,29 +457,29 @@ export default function AnalyticsPage() {
             <h2 className="mb-4 px-2 text-sm font-semibold text-foreground">
               Property performance
             </h2>
-            <table className="w-full min-w-[520px] text-left text-sm">
+            <table className="w-full min-w-[520px] border-separate border-spacing-0 text-left">
               <thead>
-                <tr className="border-b border-border text-xs text-muted">
-                  <th className="px-3 py-2 font-semibold">Property</th>
-                  <th className="px-3 py-2 font-semibold">Enquiries</th>
-                  <th className="px-3 py-2 font-semibold">Visits</th>
-                  <th className="px-3 py-2 font-semibold">Conversion</th>
+                <tr className="border-b border-border/60 text-muted">
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.06em]">Property</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.06em]">Enquiries</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.06em]">Visits</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.06em]">Conversion</th>
                 </tr>
               </thead>
               <tbody>
                 {data.propertyPerformance.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-3 py-8 text-center text-muted">
+                    <td colSpan={4} className="px-4 py-8 text-center text-[13px] text-muted">
                       No property data yet. Add listings to track performance.
                     </td>
                   </tr>
                 ) : (
                   data.propertyPerformance.map((row) => (
-                    <tr key={row.id} className="border-b border-border/60 hover:bg-surface-2">
-                      <td className="px-3 py-3 font-medium">{row.name}</td>
-                      <td className="px-3 py-3">{row.enquiries}</td>
-                      <td className="px-3 py-3">{row.visits}</td>
-                      <td className="px-3 py-3 font-semibold text-primary">
+                    <tr key={row.id} className="border-b border-border/60 transition-colors duration-100 hover:bg-surface-2">
+                      <td className="px-4 py-3.5 text-[13px] font-medium">{row.name}</td>
+                      <td className="px-4 py-3.5 text-[13px]">{row.enquiries}</td>
+                      <td className="px-4 py-3.5 text-[13px]">{row.visits}</td>
+                      <td className="px-4 py-3.5 text-[13px] font-semibold text-primary">
                         {row.conversionRate}%
                       </td>
                     </tr>
@@ -494,17 +499,17 @@ export default function AnalyticsPage() {
                   </span>
                   <span className="font-semibold text-foreground">{Math.round(aiPct)}%</span>
                 </div>
-                <div className="h-3 overflow-hidden rounded-full bg-surface-3">
+                <div className="h-2 overflow-hidden rounded-full bg-surface-3">
                   <div
                     className={cn(
-                      'h-full rounded-full transition-all',
+                      'h-full rounded-full transition-all duration-500 ease-out',
                       aiPct >= 90 ? 'bg-danger' : aiPct >= 70 ? 'bg-warning' : 'bg-primary'
                     )}
                     style={{ width: `${aiPct}%` }}
                   />
                 </div>
               </div>
-              <div className="flex flex-wrap gap-6 text-sm">
+              <div className="flex flex-wrap gap-8 text-[13px]">
                 <div>
                   <span className="text-muted">Est. cost ({range}d)</span>
                   <p className="font-semibold text-foreground">

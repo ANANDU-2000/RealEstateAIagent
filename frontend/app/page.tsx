@@ -42,7 +42,7 @@ export default function HomePage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <Link
             href="/onboarding"
-            className="group rounded-2xl border border-border bg-surface p-5 shadow-sm transition-shadow hover:shadow-md"
+            className="group rounded-[var(--radius-2xl)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)] transition-shadow hover:shadow-[var(--shadow-md)]"
           >
             <h2 className="font-semibold text-foreground">Onboarding</h2>
             <p className="mt-1 text-sm text-muted">Complete your setup checklist</p>
@@ -53,7 +53,7 @@ export default function HomePage() {
           </Link>
           <Link
             href="/chats"
-            className="group rounded-2xl border border-border bg-surface p-5 shadow-sm transition-shadow hover:shadow-md"
+            className="group rounded-[var(--radius-2xl)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)] transition-shadow hover:shadow-[var(--shadow-md)]"
           >
             <h2 className="font-semibold text-foreground">Dashboard</h2>
             <p className="mt-1 text-sm text-muted">Live chats (sign in required)</p>

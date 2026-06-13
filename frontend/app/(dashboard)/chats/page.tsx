@@ -25,6 +25,7 @@ import { ConversationList } from '@/components/chats/ConversationList';
 import { ChatPanel } from '@/components/chats/ChatPanel';
 import { ProfilePanel } from '@/components/chats/ProfilePanel';
 import { Spinner } from '@/components/ui/Spinner';
+import { cn } from '@/lib/utils';
 
 type MobileView = 'list' | 'chat' | 'profile';
 
@@ -80,6 +81,7 @@ export default function ChatsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [mobileView, setMobileView] = useState<MobileView>('list');
+  const [showProfileDesktop, setShowProfileDesktop] = useState(true);
 
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -419,7 +421,13 @@ export default function ChatsPage() {
             setMobileView('list');
             setSelectedId(null);
           }}
-          onOpenProfile={() => setMobileView('profile')}
+          onOpenProfile={() => {
+            if (typeof window !== 'undefined' && window.matchMedia('(min-width: 1280px)').matches) {
+              setShowProfileDesktop((v) => !v);
+            } else {
+              setMobileView('profile');
+            }
+          }}
           onTakeOver={() => void handleTakeOver()}
           onHandBackToAi={() => void handleHandBackToAi()}
           onSendMessage={(content) => void handleSendMessage(content)}
@@ -427,10 +435,21 @@ export default function ChatsPage() {
         />
       </div>
 
+      {showProfile && (
+        <button
+          type="button"
+          aria-label="Close profile"
+          className="fixed inset-0 z-10 bg-black/10 backdrop-blur-[1px] xl:hidden"
+          onClick={() => setMobileView('chat')}
+        />
+      )}
+
       <div
-        className={`fixed inset-0 z-20 bg-surface xl:static xl:z-auto xl:flex ${
-          showProfile ? 'flex' : 'hidden xl:flex'
-        }`}
+        className={cn(
+          'fixed inset-0 z-20 bg-surface xl:static xl:z-auto',
+          showProfile ? 'flex' : 'hidden',
+          showProfileDesktop ? 'xl:flex' : 'xl:hidden'
+        )}
       >
         <ProfilePanel
           conversation={selectedConversation}

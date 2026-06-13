@@ -202,7 +202,7 @@ export function PropertyForm({ values, onChange, country, errors = {} }: Propert
       />
 
       <div className="flex flex-col gap-1.5 md:col-span-2">
-        <label htmlFor="property-details" className="text-sm font-medium text-foreground">
+        <label htmlFor="property-details" className="text-[13px] font-medium text-foreground leading-none">
           Description
         </label>
         <textarea
@@ -215,10 +215,10 @@ export function PropertyForm({ values, onChange, country, errors = {} }: Propert
           maxLength={500}
           placeholder="Key highlights buyers should know…"
           className={cn(
-            'w-full rounded-lg border bg-surface px-3 py-2 text-sm text-foreground',
-            'placeholder:text-muted-light outline-none transition-shadow',
-            'focus:border-primary focus:shadow-[var(--focus-ring)]',
-            errors.details && 'border-danger'
+            'min-h-[80px] w-full rounded-[var(--radius-lg)] border border-border bg-surface px-3.5 py-2.5 text-sm text-foreground',
+            'placeholder:text-muted-light outline-none transition-all duration-150',
+            'hover:border-border-dark focus:border-primary focus:shadow-[var(--focus-ring)]',
+            errors.details && 'border-danger focus:border-danger focus:shadow-[var(--error-ring)]'
           )}
         />
         <div className="flex items-center justify-between text-xs text-muted">

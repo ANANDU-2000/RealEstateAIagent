@@ -54,6 +54,10 @@ export function SignupWizard() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const strength = passwordStrength(form.password);
+  const strengthBars =
+    strength === 'weak' ? 1 : strength === 'medium' ? 2 : strength === 'strong' ? 4 : 0;
+  const strengthColor =
+    strength === 'weak' ? 'bg-danger' : strength === 'medium' ? 'bg-warning' : 'bg-success';
   const currency = COUNTRIES.find((c) => c.code === form.country)?.currency ?? 'INR';
 
   function updateForm(patch: Partial<SignupStep1Data>) {
@@ -117,9 +121,18 @@ export function SignupWizard() {
 
   return (
     <div className="flex w-full max-w-[520px] flex-col gap-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-foreground">Start your free trial</h1>
-        <p className="text-sm text-muted">
+      <Link
+        href="/login"
+        className="text-[13px] font-medium text-muted hover:text-foreground hover:underline"
+      >
+        ← Back to login
+      </Link>
+
+      <div className="flex flex-col gap-1">
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground">
+          Start your free trial
+        </h1>
+        <p className="text-[14px] text-muted">
           {TRIAL_DAYS}-day trial · No credit card required
         </p>
       </div>
@@ -177,20 +190,12 @@ export function SignupWizard() {
             {form.password && (
               <div className="flex items-center gap-2">
                 <div className="flex flex-1 gap-1">
-                  {[1, 2, 3].map((n) => (
+                  {[1, 2, 3, 4].map((n) => (
                     <div
                       key={n}
                       className={cn(
                         'h-1 flex-1 rounded-full',
-                        (strength === 'weak' && n === 1) ||
-                          (strength === 'medium' && n <= 2) ||
-                          (strength === 'strong' && n <= 3)
-                          ? strength === 'weak'
-                            ? 'bg-danger'
-                            : strength === 'medium'
-                              ? 'bg-warning'
-                              : 'bg-success'
-                          : 'bg-border'
+                        n <= strengthBars ? strengthColor : 'bg-border'
                       )}
                     />
                   ))}
@@ -252,8 +257,8 @@ export function SignupWizard() {
                   className="text-left"
                 >
                   <Card
+                    hover
                     className={cn(
-                      'cursor-pointer transition-shadow hover:shadow-md',
                       plan === planId && 'border-primary ring-2 ring-primary/20'
                     )}
                   >
