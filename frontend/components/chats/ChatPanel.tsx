@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
+  AlertCircle,
   MessageSquare,
   Mic,
   Paperclip,
@@ -112,8 +113,14 @@ function MessageBubble({ message }: { message: Message }) {
             />
           )}
         </div>
-        <span className="mt-1 text-[10px] text-muted/60">
+        <span className="mt-1 flex items-center gap-1 text-[10px] text-muted/60">
           {formatRelativeTime(message.sentAt)}
+          {!isCustomer && message.status === 'failed' && (
+            <span className="inline-flex items-center gap-0.5 font-semibold text-warning">
+              <AlertCircle className="h-3 w-3" />
+              Failed to send
+            </span>
+          )}
         </span>
       </div>
     </div>

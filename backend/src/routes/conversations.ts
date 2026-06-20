@@ -3,6 +3,10 @@ import { pool } from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { sendWhatsAppMessage } from '../services/whatsapp.service';
 import {
+  emitToTenant,
+  emitConversationUpdate,
+} from '../utils/conversation-realtime';
+import {
   conversationListQuerySchema,
   conversationUpdateSchema,
   conversationStageSchema,
@@ -334,6 +338,9 @@ router.patch('/:id/stage', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    const conversationId = String(req.params.id);
+    await emitConversationUpdate(conversationId, tenantId);
+
     res.json({ conversation: mapConversation(result.rows[0]) });
   } catch (error) {
     console.error('Update conversation stage failed:', error);
@@ -453,7 +460,25 @@ router.post('/:id/send', async (req: AuthRequest, res: Response) => {
 
     await client.query('COMMIT');
 
-    res.status(201).json({ message: mapMessage(messageResult.rows[0]) });
+    const mappedMessage = mapMessage(messageResult.rows[0]);
+
+    const conversationId = String(req.params.id);
+
+    emitToTenant(tenantId, 'new_message', {
+      conversationId,
+      message: {
+        id: mappedMessage.id,
+        direction: mappedMessage.direction,
+        sender: mappedMessage.sender,
+        content: mappedMessage.content,
+        mediaType: mappedMessage.mediaType,
+        status: mappedMessage.status,
+        sentAt: mappedMessage.sentAt,
+      },
+    });
+    await emitConversationUpdate(conversationId, tenantId);
+
+    res.status(201).json({ message: mappedMessage });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Send broker message failed:', error);
@@ -576,6 +601,9 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
       res.status(404).json({ error: 'Conversation not found' });
       return;
     }
+
+    const conversationId = String(req.params.id);
+    await emitConversationUpdate(conversationId, tenantId);
 
     res.json({ conversation: mapConversation(result.rows[0]) });
   } catch (error) {

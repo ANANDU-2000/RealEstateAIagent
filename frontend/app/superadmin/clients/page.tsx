@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Copy, Plus, RotateCcw } from 'lucide-react';
+import { Copy, Plus, RotateCcw, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useSaAuth } from '@/hooks/useSaAuth';
 import {
   saGetStats,
+  saGetClientAiActivity,
   saDuplicateClient,
   saUpdateClientPlan,
   saUpdateClientStatus,
@@ -19,6 +20,7 @@ import {
   type SaClient,
   type SaCreateClientResult,
   type SaStats,
+  type SaClientAiActivity,
 } from '@/lib/api';
 import { COUNTRIES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -74,6 +76,9 @@ export default function SuperAdminClientsPage() {
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [duplicateFor, setDuplicateFor] = useState<SaClient | null>(null);
   const [duplicateForm, setDuplicateForm] = useState({ email: '', businessName: '', ownerName: '' });
+  const [expandedAiClientId, setExpandedAiClientId] = useState<string | null>(null);
+  const [aiActivity, setAiActivity] = useState<SaClientAiActivity | null>(null);
+  const [aiActivityLoading, setAiActivityLoading] = useState(false);
 
   const [form, setForm] = useState({
     businessName: '',
@@ -245,6 +250,31 @@ export default function SuperAdminClientsPage() {
       );
     } finally {
       setActionLoading(null);
+    }
+  }
+
+  async function toggleAiActivity(clientId: string) {
+    if (!token) return;
+    if (expandedAiClientId === clientId) {
+      setExpandedAiClientId(null);
+      setAiActivity(null);
+      return;
+    }
+    setExpandedAiClientId(clientId);
+    setAiActivityLoading(true);
+    setAiActivity(null);
+    try {
+      const data = await saGetClientAiActivity(token, clientId);
+      setAiActivity(data);
+    } catch (err) {
+      setError(
+        err && typeof err === 'object' && 'error' in err
+          ? String((err as { error: string }).error)
+          : 'Could not load AI activity.'
+      );
+      setExpandedAiClientId(null);
+    } finally {
+      setAiActivityLoading(false);
     }
   }
 
@@ -500,6 +530,7 @@ export default function SuperAdminClientsPage() {
                   priceDrafts[c.clientId] ??
                   formatMonthlyPrice(c.monthlyPricePaise, c.monthlyPriceCurrency);
                 return (
+                  <>
                   <tr key={c.clientId} className="border-t border-[#334155]">
                     <td className="px-4 py-3">
                       <p className="font-mono text-primary">{c.clientId}</p>
@@ -655,6 +686,19 @@ export default function SuperAdminClientsPage() {
                           size="sm"
                           variant="ghost"
                           disabled={busy}
+                          onClick={() => void toggleAiActivity(c.clientId)}
+                        >
+                          {expandedAiClientId === c.clientId ? (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          )}
+                          AI Activity
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={busy}
                           onClick={() => {
                             setDuplicateFor(c);
                             setDuplicateForm({
@@ -669,6 +713,124 @@ export default function SuperAdminClientsPage() {
                       </div>
                     </td>
                   </tr>
+                  {expandedAiClientId === c.clientId && (
+                    <tr key={`${c.clientId}-ai`} className="border-t border-[#334155] bg-[#0F172A]">
+                      <td colSpan={6} className="px-4 py-4">
+                        {aiActivityLoading ? (
+                          <p className="text-sm text-[#94A3B8]">Loading AI activity…</p>
+                        ) : aiActivity ? (
+                          <div className="grid gap-4 lg:grid-cols-3">
+                            <div>
+                              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
+                                Recent AI usage (last 20)
+                              </h4>
+                              {aiActivity.usage.length === 0 ? (
+                                <p className="text-sm text-[#64748B]">No AI usage logged yet.</p>
+                              ) : (
+                                <div className="max-h-64 overflow-auto rounded-lg border border-[#334155]">
+                                  <table className="w-full text-left text-xs">
+                                    <thead className="sticky top-0 bg-[#1E293B] text-[#94A3B8]">
+                                      <tr>
+                                        <th className="px-2 py-1.5">Time</th>
+                                        <th className="px-2 py-1.5">Model</th>
+                                        <th className="px-2 py-1.5">Tokens</th>
+                                        <th className="px-2 py-1.5">Cost</th>
+                                        <th className="px-2 py-1.5">Fallback</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {aiActivity.usage.map((row, i) => (
+                                        <tr key={i} className="border-t border-[#334155]">
+                                          <td className="px-2 py-1.5 text-[#CBD5E1]">
+                                            {new Date(row.createdAt).toLocaleString()}
+                                          </td>
+                                          <td className="px-2 py-1.5 font-mono text-primary">
+                                            {row.model ?? '—'}
+                                          </td>
+                                          <td className="px-2 py-1.5 text-[#CBD5E1]">
+                                            {row.inputTokens}+{row.outputTokens}
+                                          </td>
+                                          <td className="px-2 py-1.5 text-[#CBD5E1]">
+                                            ${row.costUsd.toFixed(6)}
+                                          </td>
+                                          <td className="px-2 py-1.5">
+                                            {row.fallbackUsed ? 'Yes' : 'No'}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
+                                AI failures (last 20)
+                              </h4>
+                              {aiActivity.failures.length === 0 ? (
+                                <p className="text-sm text-[#64748B]">No provider failures logged.</p>
+                              ) : (
+                                <div className="max-h-64 overflow-auto rounded-lg border border-[#334155]">
+                                  <table className="w-full text-left text-xs">
+                                    <thead className="sticky top-0 bg-[#1E293B] text-[#94A3B8]">
+                                      <tr>
+                                        <th className="px-2 py-1.5">Time</th>
+                                        <th className="px-2 py-1.5">Error</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {aiActivity.failures.map((row, i) => (
+                                        <tr key={i} className="border-t border-[#334155]">
+                                          <td className="whitespace-nowrap px-2 py-1.5 text-[#CBD5E1]">
+                                            {new Date(row.createdAt).toLocaleString()}
+                                          </td>
+                                          <td className="px-2 py-1.5 text-red-300">
+                                            {row.errorMessage}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
+                                WhatsApp delivery failures (last 20)
+                              </h4>
+                              {aiActivity.deliveryFailures.length === 0 ? (
+                                <p className="text-sm text-[#64748B]">No failed outbound deliveries logged.</p>
+                              ) : (
+                                <div className="max-h-64 overflow-auto rounded-lg border border-[#334155]">
+                                  <table className="w-full text-left text-xs">
+                                    <thead className="sticky top-0 bg-[#1E293B] text-[#94A3B8]">
+                                      <tr>
+                                        <th className="px-2 py-1.5">Time</th>
+                                        <th className="px-2 py-1.5">Message</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {aiActivity.deliveryFailures.map((row, i) => (
+                                        <tr key={i} className="border-t border-[#334155]">
+                                          <td className="whitespace-nowrap px-2 py-1.5 text-[#CBD5E1]">
+                                            {new Date(row.createdAt).toLocaleString()}
+                                          </td>
+                                          <td className="px-2 py-1.5 text-amber-300">
+                                            {row.content}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : null}
+                      </td>
+                    </tr>
+                  )}
+                  </>
                 );
               })
             )}

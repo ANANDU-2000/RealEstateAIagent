@@ -9,6 +9,7 @@ type RealtimeHandlers = {
   onEscalation?: (data: unknown) => void;
   onMeetingBooked?: (data: unknown) => void;
   onConversationUpdate?: (data: unknown) => void;
+  onHumanOverride?: (data: unknown) => void;
 };
 
 export function useRealtime(token: string | null, handlers: RealtimeHandlers = {}) {
@@ -38,12 +39,22 @@ export function useRealtime(token: string | null, handlers: RealtimeHandlers = {
     if (handlers.onConversationUpdate) {
       socket.on('conversation_update', handlers.onConversationUpdate);
     }
+    if (handlers.onHumanOverride) {
+      socket.on('human_override', handlers.onHumanOverride);
+    }
 
     return () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [token, handlers.onNewMessage, handlers.onEscalation, handlers.onMeetingBooked, handlers.onConversationUpdate]);
+  }, [
+    token,
+    handlers.onNewMessage,
+    handlers.onEscalation,
+    handlers.onMeetingBooked,
+    handlers.onConversationUpdate,
+    handlers.onHumanOverride,
+  ]);
 
   return socketRef;
 }

@@ -49,4 +49,6 @@ export type RealtimeEvents = {
   new_message: { conversationId: string; message: unknown };
   escalation: { conversationId: string; type: string };
   meeting_booked: { meetingId: string };
+  conversation_update: { conversation: unknown };
+  human_override: { conversationId: string; customerPhone: string };
 };

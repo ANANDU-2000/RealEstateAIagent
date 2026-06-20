@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/Input';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Spinner } from '@/components/ui/Spinner';
 import { useAuth } from '@/hooks/useAuth';
+import { useRealtime } from '@/hooks/useRealtime';
 import {
   type ApiError,
   type Conversation,
@@ -247,6 +248,62 @@ export default function LeadsPage() {
       setEscalations([]);
     }
   }, [selectedId, accessToken, loadDetail]);
+
+  const handleNewMessage = useCallback(
+    (data: unknown) => {
+      const payload = data as {
+        conversationId: string;
+        message?: Partial<Message> & { content?: string; sender?: Message['sender']; sentAt?: string };
+      };
+      if (!payload.conversationId || !payload.message) return;
+
+      const sentAt = payload.message.sentAt ?? new Date().toISOString();
+      setConversations((prev) => {
+        const existing = prev.find((c) => c.id === payload.conversationId);
+        if (!existing) return prev;
+        return mergeConversation(prev, {
+          ...existing,
+          lastMessagePreview: payload.message?.content ?? existing.lastMessagePreview,
+          lastMessageSender: payload.message?.sender ?? existing.lastMessageSender,
+          lastMessageAt: sentAt,
+        });
+      });
+    },
+    []
+  );
+
+  const handleConversationUpdate = useCallback((data: unknown) => {
+    const payload = data as { conversation?: Conversation };
+    if (!payload.conversation?.id) return;
+    setConversations((prev) => mergeConversation(prev, payload.conversation!));
+  }, []);
+
+  const handleEscalation = useCallback((data: unknown) => {
+    const payload = data as { conversationId?: string };
+    if (!payload.conversationId) return;
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === payload.conversationId ? { ...c, aiPaused: true } : c
+      )
+    );
+  }, []);
+
+  const handleHumanOverride = useCallback((data: unknown) => {
+    const payload = data as { conversationId?: string };
+    if (!payload.conversationId) return;
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === payload.conversationId ? { ...c, humanOverride: true } : c
+      )
+    );
+  }, []);
+
+  useRealtime(accessToken, {
+    onNewMessage: handleNewMessage,
+    onConversationUpdate: handleConversationUpdate,
+    onEscalation: handleEscalation,
+    onHumanOverride: handleHumanOverride,
+  });
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)');

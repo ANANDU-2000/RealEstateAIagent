@@ -43,6 +43,11 @@ type RealtimeEscalation = {
   type: string;
 };
 
+type RealtimeHumanOverride = {
+  conversationId: string;
+  customerPhone?: string;
+};
+
 function getErrorMessage(err: unknown): string {
   if (err && typeof err === 'object' && 'error' in err) {
     return (err as ApiError).error;
@@ -280,11 +285,31 @@ export default function ChatsPage() {
     [selectedId, loadConversationDetail]
   );
 
+  const handleHumanOverride = useCallback(
+    (data: unknown) => {
+      const payload = data as RealtimeHumanOverride;
+      if (!payload.conversationId) return;
+
+      setConversations((prev) =>
+        prev.map((c) => {
+          if (c.id !== payload.conversationId) return c;
+          const unread = selectedId !== payload.conversationId;
+          if (unread && !c.unread) {
+            setUnreadCount((count) => count + 1);
+          }
+          return { ...c, humanOverride: true, unread };
+        })
+      );
+    },
+    [selectedId]
+  );
+
   useRealtime(accessToken, {
     onNewMessage: handleNewMessage,
     onConversationUpdate: handleConversationUpdate,
     onEscalation: handleEscalation,
     onMeetingBooked: handleMeetingBooked,
+    onHumanOverride: handleHumanOverride,
   });
 
   const handleSelectConversation = (id: string) => {

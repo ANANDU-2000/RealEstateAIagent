@@ -1,7 +1,10 @@
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
 import { pool } from '../db';
-import { getIo } from '../realtime/io-holder';
+import {
+  emitToTenant,
+  emitConversationUpdate,
+} from '../utils/conversation-realtime';
 import { sendWhatsAppMessage, downloadWhatsAppMedia } from '../services/whatsapp.service';
 import {
   buildSystemPrompt,
@@ -193,13 +196,13 @@ async function storeInboundMessage(params: {
   mediaType: string;
   whatsappMsgId: string;
   mediaUrl?: string | null;
-}): Promise<{ id: string } | null> {
+}): Promise<{ id: string; sentAt: string } | null> {
   try {
-    const result = await pool.query<{ id: string }>(
+    const result = await pool.query<{ id: string; sent_at: Date }>(
       `INSERT INTO messages
          (conversation_id, tenant_id, direction, sender, content, media_type, media_url, whatsapp_msg_id)
        VALUES ($1, $2, 'inbound', 'customer', $3, $4, $5, $6)
-       RETURNING id`,
+       RETURNING id, sent_at`,
       [
         params.conversationId,
         params.tenantId,
@@ -209,7 +212,10 @@ async function storeInboundMessage(params: {
         params.whatsappMsgId,
       ]
     );
-    return result.rows[0];
+    return {
+      id: result.rows[0].id,
+      sentAt: result.rows[0].sent_at.toISOString(),
+    };
   } catch (error) {
     if (
       error instanceof Error &&
@@ -222,27 +228,119 @@ async function storeInboundMessage(params: {
   }
 }
 
+const AI_FAILURE_FALLBACK =
+  'Thanks for reaching out — let me get back to you shortly.';
+
 async function storeOutboundMessage(params: {
   conversationId: string;
   tenantId: string;
   content: string;
   aiModelUsed?: string;
-}): Promise<string> {
-  const result = await pool.query<{ id: string }>(
+  status?: 'sent' | 'failed';
+  whatsappMsgId?: string | null;
+}): Promise<{ id: string; sentAt: string }> {
+  const result = await pool.query<{ id: string; sent_at: Date }>(
     `INSERT INTO messages
-       (conversation_id, tenant_id, direction, sender, content, media_type, ai_model_used)
-     VALUES ($1, $2, 'outbound', 'ai', $3, 'text', $4)
-     RETURNING id`,
-    [params.conversationId, params.tenantId, params.content, params.aiModelUsed ?? null]
+       (conversation_id, tenant_id, direction, sender, content, media_type,
+        ai_model_used, status, whatsapp_msg_id)
+     VALUES ($1, $2, 'outbound', 'ai', $3, 'text', $4, $5, $6)
+     RETURNING id, sent_at`,
+    [
+      params.conversationId,
+      params.tenantId,
+      params.content,
+      params.aiModelUsed ?? null,
+      params.status ?? 'sent',
+      params.whatsappMsgId ?? null,
+    ]
   );
-  return result.rows[0].id;
+  return {
+    id: result.rows[0].id,
+    sentAt: result.rows[0].sent_at.toISOString(),
+  };
 }
 
-function emitToTenant(tenantId: string, event: string, payload: unknown): void {
-  const io = getIo();
-  if (io) {
-    io.to(`tenant:${tenantId}`).emit(event, payload);
+async function logAiFailure(
+  tenantId: string,
+  conversationId: string,
+  error: unknown
+): Promise<void> {
+  const errorMessage =
+    error instanceof Error ? error.message : 'Unknown AI provider error';
+  try {
+    await pool.query(
+      `INSERT INTO ai_failures (tenant_id, conversation_id, error_message)
+       VALUES ($1, $2, $3)`,
+      [tenantId, conversationId, errorMessage]
+    );
+  } catch (logError) {
+    console.error('Failed to persist ai_failures row:', logError);
   }
+}
+
+async function sendOutboundAndStore(params: {
+  phoneNumberId: string;
+  accessToken: string;
+  to: string;
+  text: string;
+  conversationId: string;
+  tenantId: string;
+  aiModelUsed?: string;
+  updateLastMessageAt?: boolean;
+}): Promise<{ messageId: string; delivered: boolean; sentAt: string }> {
+  const sendResult = await sendWhatsAppMessage({
+    phoneNumberId: params.phoneNumberId,
+    accessToken: params.accessToken,
+    to: params.to,
+    text: params.text,
+  });
+
+  const status = sendResult.success ? 'sent' : 'failed';
+  if (!sendResult.success) {
+    console.error('WhatsApp outbound delivery failed:', {
+      tenantId: params.tenantId,
+      conversationId: params.conversationId,
+      error: sendResult.error,
+    });
+  }
+
+  const stored = await storeOutboundMessage({
+    conversationId: params.conversationId,
+    tenantId: params.tenantId,
+    content: params.text,
+    aiModelUsed: params.aiModelUsed,
+    status,
+    whatsappMsgId: sendResult.whatsappMsgId,
+  });
+
+  if (params.updateLastMessageAt !== false) {
+    await pool.query(
+      `UPDATE conversations SET last_message_at = NOW() WHERE id = $1 AND tenant_id = $2`,
+      [params.conversationId, params.tenantId]
+    );
+  }
+
+  emitToTenant(params.tenantId, 'new_message', {
+    conversationId: params.conversationId,
+    message: {
+      id: stored.id,
+      direction: 'outbound',
+      sender: 'ai',
+      content: params.text,
+      mediaType: 'text',
+      status,
+      sentAt: stored.sentAt,
+      aiModelUsed: params.aiModelUsed ?? null,
+    },
+  });
+
+  await emitConversationUpdate(params.conversationId, params.tenantId);
+
+  return {
+    messageId: stored.id,
+    delivered: sendResult.success,
+    sentAt: stored.sentAt,
+  };
 }
 
 async function buildPromptContext(tenantId: string): Promise<BuildSystemPromptParams> {
@@ -433,14 +531,6 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
     }
 
     const plan = await fetchPlan(tenant.tenant_id);
-    if (
-      !plan ||
-      plan.is_blocked ||
-      plan.is_suspended ||
-      !plan.can_use_ai
-    ) {
-      return;
-    }
 
     const conversation = await upsertConversation(
       tenant.tenant_id,
@@ -457,11 +547,14 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
         `UPDATE conversations SET opted_out = true WHERE id = $1`,
         [conversation.id]
       );
-      await sendWhatsAppMessage({
+      await sendOutboundAndStore({
         phoneNumberId,
         accessToken: tenant.meta_access_token,
         to: from,
         text: 'You have been unsubscribed. Reply START to opt back in.',
+        conversationId: conversation.id,
+        tenantId: tenant.tenant_id,
+        updateLastMessageAt: false,
       });
       return;
     }
@@ -528,8 +621,12 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
         sender: 'customer',
         content: inboundContent,
         mediaType: messageType,
+        status: 'sent',
+        sentAt: stored.sentAt,
       },
     });
+
+    await emitConversationUpdate(conversation.id, tenant.tenant_id);
 
     if (conversation.human_override || conversation.ai_paused) {
       emitToTenant(tenant.tenant_id, 'human_override', {
@@ -548,48 +645,77 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
         [conversation.id]
       );
 
-      await sendWhatsAppMessage({
+      await sendOutboundAndStore({
         phoneNumberId,
         accessToken: tenant.meta_access_token,
         to: from,
         text: audioReply,
-      });
-
-      const outboundId = await storeOutboundMessage({
         conversationId: conversation.id,
         tenantId: tenant.tenant_id,
-        content: audioReply,
-      });
-
-      emitToTenant(tenant.tenant_id, 'new_message', {
-        conversationId: conversation.id,
-        message: {
-          id: outboundId,
-          direction: 'outbound',
-          sender: 'ai',
-          content: audioReply,
-          mediaType: 'text',
-        },
       });
       return;
     }
 
     if (messageType !== 'text' && messageType !== 'image' && messageType !== 'document') {
+      const unsupportedReply =
+        'Thanks for your message. Please send a text message and I\'ll help right away.';
+      await sendOutboundAndStore({
+        phoneNumberId,
+        accessToken: tenant.meta_access_token,
+        to: from,
+        text: unsupportedReply,
+        conversationId: conversation.id,
+        tenantId: tenant.tenant_id,
+      });
+      return;
+    }
+
+    if (
+      !plan ||
+      plan.is_blocked ||
+      plan.is_suspended ||
+      !plan.can_use_ai
+    ) {
+      const serviceMsg = plan?.is_blocked
+        ? 'This service is currently unavailable. Please contact the office directly.'
+        : plan?.is_suspended
+          ? 'This account is temporarily suspended. Our team will reach out soon.'
+          : 'Our AI assistant is currently unavailable. Our team will follow up shortly.';
+      await sendOutboundAndStore({
+        phoneNumberId,
+        accessToken: tenant.meta_access_token,
+        to: from,
+        text: serviceMsg,
+        conversationId: conversation.id,
+        tenantId: tenant.tenant_id,
+      });
       return;
     }
 
     if (plan.ai_messages_used >= plan.ai_message_limit) {
       const limitMsg = `Thanks for reaching out. Our team has reached the monthly message limit. ${tenant.owner_name} will get back to you shortly.`;
-      await sendWhatsAppMessage({
+      await sendOutboundAndStore({
         phoneNumberId,
         accessToken: tenant.meta_access_token,
         to: from,
         text: limitMsg,
+        conversationId: conversation.id,
+        tenantId: tenant.tenant_id,
       });
       return;
     }
 
     if (conversation.followup_capped) {
+      const cappedMsg =
+        'Thanks for your message. Our team will get back to you shortly.';
+      await sendOutboundAndStore({
+        phoneNumberId,
+        accessToken: tenant.meta_access_token,
+        to: from,
+        text: cappedMsg,
+        conversationId: conversation.id,
+        tenantId: tenant.tenant_id,
+      });
       return;
     }
 
@@ -608,13 +734,28 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
     const promptParams = await buildPromptContext(tenant.tenant_id);
     const systemPrompt = await buildSystemPrompt(promptParams);
 
-    const aiResult = await getAIResponse(
-      systemPrompt,
-      history,
-      tenant.tenant_id,
-      conversation.id,
-      visionAttachment ? { visionAttachment } : undefined
-    );
+    let aiResult;
+    try {
+      aiResult = await getAIResponse(
+        systemPrompt,
+        history,
+        tenant.tenant_id,
+        conversation.id,
+        visionAttachment ? { visionAttachment } : undefined
+      );
+    } catch (aiError) {
+      console.error('AI response failed:', aiError);
+      await logAiFailure(tenant.tenant_id, conversation.id, aiError);
+      await sendOutboundAndStore({
+        phoneNumberId,
+        accessToken: tenant.meta_access_token,
+        to: from,
+        text: AI_FAILURE_FALLBACK,
+        conversationId: conversation.id,
+        tenantId: tenant.tenant_id,
+      });
+      return;
+    }
 
     const escalationType = detectEscalationType(aiResult.text);
     if (escalationType) {
@@ -623,17 +764,13 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
 
     const replyText = stripEscalationFlags(aiResult.text) || 'Let me connect you with the team shortly.';
 
-    await sendWhatsAppMessage({
+    await sendOutboundAndStore({
       phoneNumberId,
       accessToken: tenant.meta_access_token,
       to: from,
       text: replyText,
-    });
-
-    const outboundId = await storeOutboundMessage({
       conversationId: conversation.id,
       tenantId: tenant.tenant_id,
-      content: replyText,
       aiModelUsed: aiResult.model_used,
     });
 
@@ -643,23 +780,6 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
        WHERE tenant_id = $1`,
       [tenant.tenant_id]
     );
-
-    await pool.query(
-      `UPDATE conversations SET last_message_at = NOW() WHERE id = $1`,
-      [conversation.id]
-    );
-
-    emitToTenant(tenant.tenant_id, 'new_message', {
-      conversationId: conversation.id,
-      message: {
-        id: outboundId,
-        direction: 'outbound',
-        sender: 'ai',
-        content: replyText,
-        mediaType: 'text',
-        aiModelUsed: aiResult.model_used,
-      },
-    });
   } catch (error) {
     console.error('Webhook processing error:', error);
   }

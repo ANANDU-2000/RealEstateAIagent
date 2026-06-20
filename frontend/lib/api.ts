@@ -520,6 +520,38 @@ export async function saListClients(token: string): Promise<{ clients: SaClient[
   return saApiFetch('/superadmin/clients', {}, token);
 }
 
+export type SaAiUsageRow = {
+  model: string | null;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  fallbackUsed: boolean;
+  createdAt: string;
+};
+
+export type SaAiFailureRow = {
+  errorMessage: string;
+  createdAt: string;
+};
+
+export type SaDeliveryFailureRow = {
+  content: string;
+  createdAt: string;
+};
+
+export type SaClientAiActivity = {
+  usage: SaAiUsageRow[];
+  failures: SaAiFailureRow[];
+  deliveryFailures: SaDeliveryFailureRow[];
+};
+
+export async function saGetClientAiActivity(
+  token: string,
+  clientId: string
+): Promise<SaClientAiActivity> {
+  return saApiFetch(`/superadmin/clients/${clientId}/ai-activity`, {}, token);
+}
+
 export async function saCreateClient(
   token: string,
   payload: {

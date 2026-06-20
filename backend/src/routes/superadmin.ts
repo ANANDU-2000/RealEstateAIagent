@@ -449,4 +449,80 @@ router.post('/clients/:clientId/duplicate', async (req: SaRequest, res: Response
   }
 });
 
+router.get('/clients/:clientId/ai-activity', async (req: SaRequest, res: Response) => {
+  try {
+    const tenantResult = await pool.query<{ id: string }>(
+      `SELECT id FROM tenants WHERE client_id = $1`,
+      [req.params.clientId]
+    );
+    const tenant = tenantResult.rows[0];
+    if (!tenant) {
+      res.status(404).json({ error: 'Client not found' });
+      return;
+    }
+
+    const [usageResult, failuresResult, deliveryFailuresResult] = await Promise.all([
+      pool.query<{
+        model: string | null;
+        input_tokens: number;
+        output_tokens: number;
+        cost_usd: string;
+        fallback_used: boolean;
+        created_at: Date;
+      }>(
+        `SELECT model, input_tokens, output_tokens, cost_usd, fallback_used, created_at
+         FROM ai_usage_log
+         WHERE tenant_id = $1
+         ORDER BY created_at DESC
+         LIMIT 20`,
+        [tenant.id]
+      ),
+      pool.query<{
+        error_message: string;
+        created_at: Date;
+      }>(
+        `SELECT error_message, created_at
+         FROM ai_failures
+         WHERE tenant_id = $1
+         ORDER BY created_at DESC
+         LIMIT 20`,
+        [tenant.id]
+      ).catch(() => ({ rows: [] as Array<{ error_message: string; created_at: Date }> })),
+      pool.query<{
+        content: string;
+        sent_at: Date;
+      }>(
+        `SELECT content, sent_at
+         FROM messages
+         WHERE tenant_id = $1 AND direction = 'outbound' AND status = 'failed'
+         ORDER BY sent_at DESC
+         LIMIT 20`,
+        [tenant.id]
+      ),
+    ]);
+
+    res.json({
+      usage: usageResult.rows.map((row) => ({
+        model: row.model,
+        inputTokens: row.input_tokens,
+        outputTokens: row.output_tokens,
+        costUsd: Number(row.cost_usd),
+        fallbackUsed: row.fallback_used,
+        createdAt: row.created_at,
+      })),
+      failures: failuresResult.rows.map((row) => ({
+        errorMessage: row.error_message,
+        createdAt: row.created_at,
+      })),
+      deliveryFailures: deliveryFailuresResult.rows.map((row) => ({
+        content: row.content,
+        createdAt: row.sent_at,
+      })),
+    });
+  } catch (error) {
+    console.error('SA get client AI activity error:', error);
+    res.status(500).json({ error: 'Failed to load AI activity' });
+  }
+});
+
 export default router;
