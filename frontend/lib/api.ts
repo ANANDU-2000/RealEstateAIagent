@@ -1070,6 +1070,64 @@ export async function deletePropertyPhoto(
   return apiFetch(`/properties/${propertyId}/photos/${photoId}`, { method: 'DELETE' }, token);
 }
 
+export type PropertyDocument = {
+  id: string;
+  filename: string;
+  fileUrl: string | null;
+  mimeType: string | null;
+  status: 'processing' | 'ready' | 'failed' | string;
+  errorMessage: string | null;
+  createdAt: string;
+};
+
+export async function listPropertyDocuments(
+  token: string,
+  propertyId: string
+): Promise<{ documents: PropertyDocument[] }> {
+  return apiFetch(`/properties/${propertyId}/documents`, {}, token);
+}
+
+export async function uploadPropertyDocument(
+  token: string,
+  propertyId: string,
+  file: File
+): Promise<{ document: PropertyDocument }> {
+  const form = new FormData();
+  form.append('file', file);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/properties/${propertyId}/documents`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+  } catch {
+    throw { error: 'Cannot reach the PropAgent API.', status: 0 } satisfies ApiError;
+  }
+
+  if (!response.ok) {
+    let message = response.statusText;
+    try {
+      const body = (await response.json()) as { error?: string };
+      message = body.error ?? message;
+    } catch {
+      // ignore
+    }
+    throw { error: message, status: response.status } satisfies ApiError;
+  }
+
+  return response.json() as Promise<{ document: PropertyDocument }>;
+}
+
+export async function deletePropertyDocument(
+  token: string,
+  propertyId: string,
+  documentId: string
+): Promise<{ ok: boolean }> {
+  return apiFetch(`/properties/${propertyId}/documents/${documentId}`, { method: 'DELETE' }, token);
+}
+
 export type MeetingType = 'site_visit' | 'office' | 'callback';
 export type MeetingStatus = 'confirmed' | 'cancelled' | 'no_show' | 'completed';
 

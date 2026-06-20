@@ -261,7 +261,42 @@ export default function LeadsPage() {
       const sentAt = payload.message.sentAt ?? new Date().toISOString();
       setConversations((prev) => {
         const existing = prev.find((c) => c.id === payload.conversationId);
-        if (!existing) return prev;
+        if (!existing) {
+          const stub: Conversation = {
+            id: payload.conversationId,
+            customerPhone: '',
+            customerName: null,
+            status: 'active',
+            intent: 'unknown',
+            leadStage: 'new',
+            budgetMin: null,
+            budgetMax: null,
+            preferredType: null,
+            preferredArea: null,
+            languagePref: 'english',
+            leadScore: 0,
+            humanOverride: false,
+            aiPaused: false,
+            followupCount: 0,
+            followupCapped: false,
+            isReturning: false,
+            callbackRequested: false,
+            callbackRequestedTime: null,
+            voiceNoteReceived: false,
+            optedOut: false,
+            isNri: false,
+            assignedTo: null,
+            brokerNotes: null,
+            lastBrokerRead: null,
+            firstMessageAt: sentAt,
+            lastMessageAt: sentAt,
+            createdAt: sentAt,
+            lastMessagePreview: payload.message?.content ?? null,
+            lastMessageSender: payload.message?.sender ?? 'customer',
+            unread: true,
+          };
+          return mergeConversation(prev, stub);
+        }
         return mergeConversation(prev, {
           ...existing,
           lastMessagePreview: payload.message?.content ?? existing.lastMessagePreview,
@@ -290,11 +325,21 @@ export default function LeadsPage() {
   }, []);
 
   const handleHumanOverride = useCallback((data: unknown) => {
-    const payload = data as { conversationId?: string };
+    const payload = data as {
+      conversationId?: string;
+      humanOverride?: boolean;
+      aiPaused?: boolean;
+    };
     if (!payload.conversationId) return;
     setConversations((prev) =>
       prev.map((c) =>
-        c.id === payload.conversationId ? { ...c, humanOverride: true } : c
+        c.id === payload.conversationId
+          ? {
+              ...c,
+              humanOverride: payload.humanOverride ?? true,
+              aiPaused: payload.aiPaused ?? c.aiPaused,
+            }
+          : c
       )
     );
   }, []);

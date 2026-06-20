@@ -327,7 +327,7 @@ export default function WhatsAppSettingsPage() {
             <Button
               variant="outline"
               loading={testing}
-              disabled={!tokenStored && !metaAccessToken.trim()}
+              disabled={!metaPhoneNumberId.trim() || (!tokenStored && !metaAccessToken.trim())}
               onClick={() => void handleTest()}
             >
               Send test message

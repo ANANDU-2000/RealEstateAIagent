@@ -11,6 +11,7 @@ import {
   type PropertyFormValues,
 } from '@/components/properties/PropertyForm';
 import { PropertyPhotosTab } from '@/components/properties/PropertyPhotosTab';
+import { PropertyDocumentsTab } from '@/components/properties/PropertyDocumentsTab';
 import { PropertyTagsTab } from '@/components/properties/PropertyTagsTab';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -26,11 +27,12 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
-type FormTab = 'details' | 'photos' | 'tags';
+type FormTab = 'details' | 'photos' | 'documents' | 'tags';
 
 const FORM_TABS: { id: FormTab; label: string }[] = [
   { id: 'details', label: 'Details' },
   { id: 'photos', label: 'Photos' },
+  { id: 'documents', label: 'Documents' },
   { id: 'tags', label: 'AI Tags' },
 ];
 
@@ -230,6 +232,10 @@ export default function EditPropertyPage() {
               photos={photos}
               onPhotosChange={setPhotos}
             />
+          )}
+
+          {activeTab === 'documents' && accessToken && (
+            <PropertyDocumentsTab token={accessToken} propertyId={propertyId} />
           )}
 
           {activeTab === 'tags' && <PropertyTagsTab tags={tags} onChange={setTags} />}

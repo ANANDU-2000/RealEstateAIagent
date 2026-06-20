@@ -44,8 +44,8 @@ const STEPS: ChecklistStep[] = [
   {
     id: 'whatsappConnected',
     label: 'Connect WhatsApp number',
-    doneDescription: 'Buyers can message your AI agent.',
-    pendingDescription: 'Link the number leads will message on WhatsApp.',
+    doneDescription: 'Meta credentials saved. Buyers can message your AI agent.',
+    pendingDescription: 'Add your number, Phone Number ID, and access token in WhatsApp Settings.',
     action: 'drawer',
   },
   {

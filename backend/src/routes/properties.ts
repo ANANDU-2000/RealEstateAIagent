@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import multer from 'multer';
 import { pool } from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import {
@@ -7,8 +8,28 @@ import {
   propertyStatusSchema,
   propertyPhotoSchema,
 } from '../utils/validators';
+import {
+  chunkText,
+  extractTextFromBuffer,
+  storeDocumentChunks,
+} from '../services/document.service';
+import { isR2Configured, uploadToR2 } from '../services/r2.service';
 
 const router = Router();
+
+const documentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const name = file.originalname.toLowerCase();
+    const allowed =
+      file.mimetype === 'application/pdf' ||
+      file.mimetype.startsWith('text/') ||
+      name.endsWith('.pdf') ||
+      name.endsWith('.txt');
+    cb(null, allowed);
+  },
+});
 
 router.use(requireAuth);
 
@@ -490,6 +511,174 @@ router.delete('/:id/photos/:photoId', async (req: AuthRequest, res: Response) =>
   } catch (error) {
     console.error('Delete photo failed:', error);
     res.status(500).json({ error: 'Failed to delete photo' });
+  }
+});
+
+function mapDocument(row: {
+  id: string;
+  filename: string;
+  file_url: string | null;
+  mime_type: string | null;
+  status: string;
+  error_message: string | null;
+  created_at: Date;
+}) {
+  return {
+    id: row.id,
+    filename: row.filename,
+    fileUrl: row.file_url,
+    mimeType: row.mime_type,
+    status: row.status,
+    errorMessage: row.error_message,
+    createdAt: row.created_at,
+  };
+}
+
+router.get('/:id/documents', async (req: AuthRequest, res: Response) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  try {
+    const propertyCheck = await pool.query(
+      `SELECT id FROM properties WHERE id = $1 AND tenant_id = $2`,
+      [req.params.id, tenantId]
+    );
+    if (!propertyCheck.rows[0]) {
+      res.status(404).json({ error: 'Property not found' });
+      return;
+    }
+
+    const result = await pool.query(
+      `SELECT id, filename, file_url, mime_type, status, error_message, created_at
+       FROM tenant_documents
+       WHERE tenant_id = $1 AND property_id = $2
+       ORDER BY created_at DESC`,
+      [tenantId, req.params.id]
+    );
+
+    res.json({ documents: result.rows.map(mapDocument) });
+  } catch (error) {
+    console.error('List documents failed:', error);
+    res.status(500).json({ error: 'Failed to load documents' });
+  }
+});
+
+router.post(
+  '/:id/documents',
+  documentUpload.single('file'),
+  async (req: AuthRequest, res: Response) => {
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({ error: 'Upload a PDF or plain text file.' });
+      return;
+    }
+
+    try {
+      const propertyCheck = await pool.query(
+        `SELECT id FROM properties WHERE id = $1 AND tenant_id = $2`,
+        [req.params.id, tenantId]
+      );
+      if (!propertyCheck.rows[0]) {
+        res.status(404).json({ error: 'Property not found' });
+        return;
+      }
+
+      const insert = await pool.query<{
+        id: string;
+        filename: string;
+        file_url: string | null;
+        mime_type: string | null;
+        status: string;
+        error_message: string | null;
+        created_at: Date;
+      }>(
+        `INSERT INTO tenant_documents (tenant_id, property_id, filename, mime_type, status)
+         VALUES ($1, $2, $3, $4, 'processing')
+         RETURNING id, filename, file_url, mime_type, status, error_message, created_at`,
+        [tenantId, req.params.id, file.originalname, file.mimetype]
+      );
+
+      const doc = insert.rows[0];
+      if (!doc) {
+        res.status(500).json({ error: 'Failed to create document record' });
+        return;
+      }
+
+      let fileUrl: string | null = null;
+      if (isR2Configured()) {
+        const key = `tenants/${tenantId}/properties/${req.params.id}/documents/${doc.id}-${file.originalname}`;
+        fileUrl = await uploadToR2(key, file.buffer, file.mimetype);
+      }
+
+      try {
+        const text = await extractTextFromBuffer(file.buffer, file.mimetype, file.originalname);
+        const chunks = chunkText(text);
+        if (!chunks.length) {
+          throw new Error('No readable text found in this file.');
+        }
+
+        await storeDocumentChunks(tenantId, doc.id, chunks);
+
+        const updated = await pool.query(
+          `UPDATE tenant_documents
+           SET file_url = $1, status = 'ready', error_message = NULL, updated_at = NOW()
+           WHERE id = $2 AND tenant_id = $3
+           RETURNING id, filename, file_url, mime_type, status, error_message, created_at`,
+          [fileUrl, doc.id, tenantId]
+        );
+
+        res.status(201).json({ document: mapDocument(updated.rows[0]!) });
+      } catch (processError) {
+        const message =
+          processError instanceof Error ? processError.message : 'Could not process document';
+        await pool.query(
+          `UPDATE tenant_documents
+           SET file_url = $1, status = 'failed', error_message = $2, updated_at = NOW()
+           WHERE id = $3 AND tenant_id = $4`,
+          [fileUrl, message, doc.id, tenantId]
+        );
+        res.status(400).json({ error: message });
+      }
+    } catch (error) {
+      console.error('Upload document failed:', error);
+      res.status(500).json({ error: 'Failed to upload document' });
+    }
+  }
+);
+
+router.delete('/:id/documents/:docId', async (req: AuthRequest, res: Response) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      `DELETE FROM tenant_documents
+       WHERE id = $1 AND property_id = $2 AND tenant_id = $3
+       RETURNING id`,
+      [req.params.docId, req.params.id, tenantId]
+    );
+
+    if (!result.rows[0]) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Delete document failed:', error);
+    res.status(500).json({ error: 'Failed to delete document' });
   }
 });
 

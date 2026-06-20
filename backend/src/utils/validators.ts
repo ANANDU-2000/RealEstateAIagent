@@ -254,6 +254,17 @@ export const settingsWhatsappSchema = z
         });
       }
     }
+    const token =
+      typeof data.metaAccessToken === 'string' ? data.metaAccessToken.trim() : '';
+    const phoneId =
+      typeof data.metaPhoneNumberId === 'string' ? data.metaPhoneNumberId.trim() : '';
+    if (token.length > 0 && phoneId.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Phone Number ID is required when an access token is set',
+        path: ['metaPhoneNumberId'],
+      });
+    }
   });
 
 export const settingsOfficeSchema = z.object({

@@ -18,6 +18,7 @@ export type BuildSystemPromptParams = {
   currency: string;
   followup_max: string;
   no_msg_after_hour: string;
+  document_chunks_json: string;
 };
 
 export type ChatMessage = {
@@ -134,10 +135,15 @@ export async function buildSystemPrompt(params: BuildSystemPromptParams): Promis
     currency: params.currency,
     followup_max: params.followup_max,
     no_msg_after_hour: params.no_msg_after_hour,
+    document_chunks_json: params.document_chunks_json,
   };
 
   for (const [key, value] of Object.entries(replacements)) {
     prompt = prompt.replaceAll(`{${key}}`, value);
+  }
+
+  if (!prompt.includes(params.document_chunks_json) && params.document_chunks_json !== '[]') {
+    prompt += `\n\n## BROKER DOCUMENT EXCERPTS\n${params.document_chunks_json}\nOnly answer document questions from these excerpts. If no match, hand off to ${params.owner_name}.`;
   }
 
   return prompt;

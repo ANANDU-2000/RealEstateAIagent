@@ -102,6 +102,9 @@ export default function NewPropertyPage() {
           Back to properties
         </Link>
         <h1 className="mt-3 text-[24px] font-bold tracking-tight text-foreground">Add Property</h1>
+        <p className="mt-1 text-sm text-muted">
+          After saving, open the property to add photos and PDF brochures for the AI agent.
+        </p>
       </div>
 
       {error && (

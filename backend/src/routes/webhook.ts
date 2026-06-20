@@ -13,6 +13,7 @@ import {
   type BuildSystemPromptParams,
   type VisionAttachment,
 } from '../services/ai.service';
+import { fetchRelevantDocumentChunks } from '../services/document.service';
 
 const router = Router();
 
@@ -343,7 +344,10 @@ async function sendOutboundAndStore(params: {
   };
 }
 
-async function buildPromptContext(tenantId: string): Promise<BuildSystemPromptParams> {
+async function buildPromptContext(
+  tenantId: string,
+  customerMessage = ''
+): Promise<BuildSystemPromptParams> {
   const tenantResult = await pool.query<{
     business_name: string;
     owner_name: string;
@@ -423,6 +427,16 @@ async function buildPromptContext(tenantId: string): Promise<BuildSystemPromptPa
     }
   }
 
+  const documentChunks = await fetchRelevantDocumentChunks(tenantId, customerMessage);
+  const document_chunks_json = JSON.stringify(
+    documentChunks.map((chunk) => ({
+      filename: chunk.filename,
+      chunk_index: chunk.chunkIndex,
+      property_id: chunk.propertyId,
+      text: chunk.chunkText,
+    }))
+  );
+
   return {
     workspace_name: tenant?.business_name ?? '',
     owner_name: tenant?.owner_name ?? '',
@@ -439,6 +453,7 @@ async function buildPromptContext(tenantId: string): Promise<BuildSystemPromptPa
     currency,
     followup_max: String(tenant?.ai_followup_count ?? 2),
     no_msg_after_hour: String(tenant?.no_msg_after_hour ?? 21),
+    document_chunks_json,
   };
 }
 
@@ -632,6 +647,8 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
       emitToTenant(tenant.tenant_id, 'human_override', {
         conversationId: conversation.id,
         customerPhone: from,
+        humanOverride: conversation.human_override,
+        aiPaused: conversation.ai_paused,
       });
       return;
     }
@@ -731,7 +748,7 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
     }
 
     const history = await buildConversationHistory(conversation.id);
-    const promptParams = await buildPromptContext(tenant.tenant_id);
+    const promptParams = await buildPromptContext(tenant.tenant_id, text || inboundContent);
     const systemPrompt = await buildSystemPrompt(promptParams);
 
     let aiResult;

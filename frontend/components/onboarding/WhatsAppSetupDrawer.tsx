@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -30,6 +32,7 @@ export function WhatsAppSetupDrawer({
   accessToken,
   onSaved,
 }: WhatsAppSetupDrawerProps) {
+  const router = useRouter();
   const [number, setNumber] = useState(initialNumber);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +59,8 @@ export function WhatsAppSetupDrawer({
     try {
       await updateWhatsAppNumber(accessToken, number);
       onSaved();
+      onClose();
+      router.push('/settings/whatsapp');
     } catch (err) {
       const message =
         err && typeof err === 'object' && 'error' in err
@@ -128,9 +133,16 @@ export function WhatsAppSetupDrawer({
             Cancel
           </Button>
           <Button fullWidth loading={loading} onClick={() => void handleSave()}>
-            Save number
+            Save and continue in Settings
           </Button>
         </div>
+        <p className="text-center text-xs text-muted">
+          Next: add your Phone Number ID and access token in{' '}
+          <Link href="/settings/whatsapp" className="text-primary hover:underline">
+            WhatsApp Settings
+          </Link>
+          .
+        </p>
       </div>
     </div>
   );

@@ -111,8 +111,7 @@ router.get('/onboarding-status', async (req: AuthRequest, res: Response) => {
     const hasAvailability = Number(row.slot_count) > 0;
     const hasOfficeAddress = Boolean(row.office_address?.trim());
 
-    const hasWhatsappNumber = Boolean(row.whatsapp_number?.trim());
-    const whatsappReady = row.whatsapp_connected || hasWhatsappNumber;
+    const whatsappReady = row.whatsapp_connected;
 
     const steps = {
       accountCreated: true,
@@ -248,6 +247,14 @@ router.patch('/whatsapp', async (req: AuthRequest, res: Response) => {
           : data.metaWabaId.trim() || null;
 
     const whatsappConnected = Boolean(metaPhoneNumberId && metaAccessToken);
+
+    if (metaAccessToken && !metaPhoneNumberId) {
+      res.status(400).json({
+        error: 'Phone Number ID is required when an access token is set.',
+      });
+      return;
+    }
+
     const wasConnected = Boolean(row?.whatsapp_connected);
 
     await pool.query(

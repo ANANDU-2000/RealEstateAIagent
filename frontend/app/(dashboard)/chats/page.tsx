@@ -9,7 +9,8 @@ import {
   type Escalation,
   type Message,
   getConversation,
-  listConversations,
+  listAllConversations,
+  getConversationCounts,
   markConversationRead,
   sendConversationMessage,
   updateConversation,
@@ -45,6 +46,8 @@ type RealtimeEscalation = {
 type RealtimeHumanOverride = {
   conversationId: string;
   customerPhone?: string;
+  humanOverride?: boolean;
+  aiPaused?: boolean;
 };
 
 function getErrorMessage(err: unknown): string {
@@ -115,9 +118,12 @@ export default function ChatsPage() {
     setListLoading(true);
     setListError(null);
     try {
-      const listResult = await listConversations(accessToken, { count: true });
-      setConversations(sortConversations(listResult.conversations));
-      setUnreadCount(listResult.unreadCount ?? 0);
+      const [allConversations, counts] = await Promise.all([
+        listAllConversations(accessToken),
+        getConversationCounts(accessToken),
+      ]);
+      setConversations(sortConversations(allConversations));
+      setUnreadCount(counts.unreadCount ?? 0);
     } catch (err) {
       setListError(getErrorMessage(err));
     } finally {
@@ -293,7 +299,12 @@ export default function ChatsPage() {
           if (unread && !c.unread) {
             setUnreadCount((count) => count + 1);
           }
-          return { ...c, humanOverride: true, unread };
+          return {
+            ...c,
+            humanOverride: payload.humanOverride ?? true,
+            aiPaused: payload.aiPaused ?? c.aiPaused,
+            unread,
+          };
         })
       );
     },
