@@ -22,7 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 const TONE_OPTIONS = [
   { value: 'friendly', label: 'Friendly & casual (recommended)' },
   { value: 'professional', label: 'Professional' },
-  { value: 'mix', label: 'Mix — friendly with professional tone' },
+  { value: 'mix', label: 'Mix: friendly and professional' },
 ];
 
 const LANGUAGE_OPTIONS = [
@@ -48,7 +48,7 @@ const NO_MSG_HOUR_OPTIONS = [
 ];
 
 const FIELD_CLASS =
-  'h-10 rounded-[var(--radius-md)] border-border/90 bg-white shadow-[var(--shadow-xs)]';
+  'h-10 rounded-[var(--radius-md)] border-border bg-surface shadow-[var(--shadow-xs)]';
 
 export default function AiSettingsPage() {
   const { accessToken, tenant } = useAuth();
@@ -257,7 +257,7 @@ export default function AiSettingsPage() {
         <div className="divide-y divide-border/60">
           <SettingsToggleRow
             label='Ask "call first or direct visit?" before booking'
-            description="Required — helps qualify customers before scheduling."
+            description="Required. Helps qualify customers before scheduling."
             checked
             disabled
             locked

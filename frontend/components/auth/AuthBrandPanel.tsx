@@ -1,7 +1,8 @@
 import { Building2, CheckCircle2 } from 'lucide-react';
+import { APP_NAME } from '@/lib/brand';
 
 const PROOF_POINTS = [
-  '500+ brokers trust PropAgent',
+  'Brokers across India, UAE, and Canada',
   'Live in Mumbai, Dubai & Toronto',
   'AI replies in under 30 seconds',
 ];
@@ -14,7 +15,7 @@ export function AuthBrandPanel() {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
             <Building2 className="h-5 w-5 text-white" />
           </div>
-          <span className="text-[22px] font-bold tracking-tight">PropAgent</span>
+          <span className="text-[22px] font-bold tracking-tight">{APP_NAME}</span>
         </div>
       </div>
 
@@ -35,7 +36,7 @@ export function AuthBrandPanel() {
       </div>
 
       <p className="relative z-10 text-[11px] text-white/25">
-        © {new Date().getFullYear()} PropAgent
+        © {new Date().getFullYear()} {APP_NAME}
       </p>
     </div>
   );

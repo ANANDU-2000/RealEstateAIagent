@@ -43,6 +43,7 @@ import {
   mergeConversation,
 } from '@/lib/chats-utils';
 import { LEAD_COLUMNS, groupByStage, stageLabel } from '@/lib/leads-utils';
+import { EMPTY_VALUE } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 type ViewMode = 'kanban' | 'list';
@@ -572,7 +573,7 @@ export default function LeadsPage() {
                   <td className="px-3 py-3">
                     {formatBudget(conv.budgetMin, conv.budgetMax, country)}
                   </td>
-                  <td className="px-3 py-3 text-muted">{conv.preferredArea ?? '—'}</td>
+                  <td className="px-3 py-3 text-muted">{conv.preferredArea ?? EMPTY_VALUE}</td>
                   <td className="px-3 py-3">
                     <Badge>{stageLabel(conv.leadStage)}</Badge>
                   </td>

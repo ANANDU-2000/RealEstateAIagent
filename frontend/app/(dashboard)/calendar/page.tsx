@@ -372,7 +372,7 @@ export default function CalendarPage() {
                               key={meeting.id}
                               className={`absolute left-0.5 right-0.5 overflow-hidden rounded px-1 py-0.5 text-[10px] leading-tight ${getMeetingColor(meeting)}`}
                               style={style}
-                              title={`${meeting.customerName ?? meeting.customerPhone} — ${meetingTypeLabel(meeting.meetingType)}`}
+                              title={`${meeting.customerName ?? meeting.customerPhone}, ${meetingTypeLabel(meeting.meetingType)}`}
                             >
                               <div className="truncate font-semibold">
                                 {meeting.customerName ?? meeting.customerPhone}

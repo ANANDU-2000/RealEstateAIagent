@@ -115,7 +115,7 @@ export default function NewPropertyPage() {
         className="mt-4 flex min-h-0 flex-1 flex-col"
       >
         <div
-          className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-2xl)] border border-white/60 bg-white/80 p-5 shadow-[var(--shadow-lg)] backdrop-blur-md md:p-6"
+          className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-2xl)] border border-border bg-surface p-5 shadow-[var(--shadow-lg)] md:p-6"
           style={{
             boxShadow:
               '0 0 0 1px rgba(15, 23, 42, 0.06), 0 8px 32px rgba(15, 23, 42, 0.08)',

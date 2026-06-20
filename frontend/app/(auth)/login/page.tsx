@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import { LoginForm } from '@/components/auth/LoginForm';
+import { APP_NAME } from '@/lib/brand';
 
 export const metadata: Metadata = {
-  title: 'Sign In — PropAgent',
-  description: 'Sign in to manage your leads, properties, and WhatsApp AI agent.',
+  title: `Sign in | ${APP_NAME}`,
+  description: 'Sign in to manage leads, properties, and your WhatsApp AI agent.',
 };
 
 export default function LoginPage() {

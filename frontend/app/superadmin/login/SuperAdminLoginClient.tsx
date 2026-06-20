@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { useSaAuth } from '@/hooks/useSaAuth';
 import { API_BASE_URL, type SaLoginError } from '@/lib/api';
+import { APP_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 function isProductionApiMisconfigured(): boolean {
@@ -48,7 +49,7 @@ export default function SuperAdminLoginPage() {
         setRequiresTotp(true);
         setError('Enter the 6-digit code from your authenticator app.');
       } else if (saErr.status === 0) {
-        setError(saErr.error ?? 'Cannot reach the PropAgent server. Try again in a moment.');
+        setError(saErr.error ?? `Cannot reach the ${APP_NAME} server. Try again in a moment.`);
       } else {
         setError(saErr.error ?? 'Invalid email or password.');
       }
@@ -65,7 +66,7 @@ export default function SuperAdminLoginPage() {
             <Shield className="h-7 w-7 text-primary" aria-hidden />
           </div>
           <p className="text-sm font-medium uppercase tracking-wider text-[#94A3B8]">
-            PropAgent Platform
+            {APP_NAME} Platform
           </p>
           <h1 className="mt-2 text-2xl font-bold text-white">Super Admin</h1>
           <p className="mt-2 text-sm leading-relaxed text-[#94A3B8]">
@@ -161,7 +162,7 @@ export default function SuperAdminLoginPage() {
           <Link href="/login" className="font-medium text-primary hover:underline">
             /login
           </Link>
-          . Accounts are created here — there is no public signup.
+          . Accounts are created here. There is no public signup.
         </p>
       </div>
     </div>

@@ -23,6 +23,7 @@ import {
   type SaClientAiActivity,
 } from '@/lib/api';
 import { COUNTRIES } from '@/lib/constants';
+import { APP_NAME, EMPTY_VALUE } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 function StatusChip({ label, variant }: { label: string; variant: 'success' | 'warning' | 'danger' | 'default' }) {
@@ -311,7 +312,7 @@ export default function SuperAdminClientsPage() {
 
   function copyCredentials() {
     if (!created) return;
-    const text = `PropAgent login\nClient ID: ${created.client.clientId}\nEmail: ${created.client.email}\nTemporary password: ${created.temporaryPassword}\nSign in: ${created.loginUrl}`;
+    const text = `${APP_NAME} login\nClient ID: ${created.client.clientId}\nEmail: ${created.client.email}\nTemporary password: ${created.temporaryPassword}\nSign in: ${created.loginUrl}`;
     void navigator.clipboard.writeText(text);
   }
 
@@ -347,7 +348,7 @@ export default function SuperAdminClientsPage() {
           <Card key={card.label} className="border-[#334155] bg-[#1E293B] p-4 text-white">
             <p className="text-xs font-medium uppercase tracking-wide text-[#94A3B8]">{card.label}</p>
             <p className="mt-2 text-2xl font-bold">
-              {loading ? '—' : (card.value ?? 0).toLocaleString()}
+              {loading ? '…' : (card.value ?? 0).toLocaleString()}
             </p>
           </Card>
         ))}
@@ -355,7 +356,7 @@ export default function SuperAdminClientsPage() {
 
       {created && (
         <Card className="mb-6 border-success/30 bg-[#1E293B] p-4 text-white">
-          <h2 className="font-semibold text-success">Client created — share these credentials</h2>
+          <h2 className="font-semibold text-success">Client created. Share these credentials.</h2>
           <dl className="mt-3 grid gap-2 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-[#94A3B8]">Client ID</dt>
@@ -388,7 +389,7 @@ export default function SuperAdminClientsPage() {
       {duplicateFor && (
         <Card className="mb-6 border-[#334155] bg-[#1E293B] p-4 text-white">
           <h2 className="mb-4 font-semibold">
-            Duplicate {duplicateFor.clientId} — copies AI settings & limits (not WhatsApp or leads)
+            Duplicate {duplicateFor.clientId}. Copies AI settings and limits, not WhatsApp or leads.
           </h2>
           <form onSubmit={handleDuplicate} className="grid gap-4 sm:grid-cols-2">
             <Input
@@ -614,7 +615,7 @@ export default function SuperAdminClientsPage() {
                           type="number"
                           min={0}
                           step="0.01"
-                          placeholder="—"
+                          placeholder="0.00"
                           value={priceValue}
                           disabled={busy}
                           onChange={(e) =>
@@ -745,7 +746,7 @@ export default function SuperAdminClientsPage() {
                                             {new Date(row.createdAt).toLocaleString()}
                                           </td>
                                           <td className="px-2 py-1.5 font-mono text-primary">
-                                            {row.model ?? '—'}
+                                            {row.model ?? EMPTY_VALUE}
                                           </td>
                                           <td className="px-2 py-1.5 text-[#CBD5E1]">
                                             {row.inputTokens}+{row.outputTokens}

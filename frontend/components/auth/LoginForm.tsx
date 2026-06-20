@@ -7,6 +7,7 @@ import { ArrowRight, Building2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { APP_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 import { loginSchema } from '@/lib/validation/auth';
 import { useAuth } from '@/hooks/useAuth';
@@ -91,10 +92,10 @@ export function LoginForm() {
       <div className="flex flex-col gap-1">
         <div className="mb-2 flex items-center gap-2 lg:hidden">
           <Building2 className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold text-foreground">PropAgent</span>
+          <span className="text-xl font-bold text-foreground">{APP_NAME}</span>
         </div>
         <h1 className="text-[22px] font-bold tracking-tight text-foreground">
-          Sign in to PropAgent
+          Sign in to {APP_NAME}
         </h1>
         <p className="mt-1 text-[14px] text-muted">Manage your leads and never miss a deal.</p>
       </div>
@@ -187,7 +188,7 @@ export function LoginForm() {
       </Button>
 
       <p className="rounded-[var(--radius-lg)] border border-border bg-surface-2 px-4 py-3 text-center text-[12px] text-muted">
-        Accounts are invite-only. Your PropAgent admin will share your Client ID, email, and
+        Accounts are invite-only. Your {APP_NAME} admin will share your Client ID, email, and
         temporary password after creating your workspace.
       </p>
     </form>

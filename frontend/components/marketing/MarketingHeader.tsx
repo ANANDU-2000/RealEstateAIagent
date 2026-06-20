@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { APP_NAME } from '@/lib/brand';
 
 const NAV_LINKS = [
   { label: 'Solutions', href: '#solutions' },
@@ -16,7 +17,7 @@ export function MarketingHeader() {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar text-white">
             <Building2 className="h-5 w-5" />
           </div>
-          <span className="text-lg font-bold tracking-tight text-foreground">PropAgent</span>
+          <span className="text-lg font-bold tracking-tight text-foreground">{APP_NAME}</span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex" aria-label="Main">

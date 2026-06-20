@@ -209,7 +209,7 @@ export default function WhatsAppSettingsPage() {
             <p className="mt-0.5 text-sm text-muted">
               {connected
                 ? whatsappNumber || 'Number configured'
-                : 'Not connected — add Meta credentials below'}
+                : 'Not connected. Add Meta credentials below.'}
             </p>
             {connectedAt && (
               <p className="mt-1 text-xs text-muted">Connected since {connectedAt}</p>
@@ -279,7 +279,7 @@ export default function WhatsAppSettingsPage() {
                 'placeholder:text-muted-light outline-none transition-shadow',
                 'focus:border-primary focus:shadow-[var(--focus-ring)]'
               )}
-              placeholder={tokenStored ? 'Token saved — enter new value to replace' : 'Paste permanent access token'}
+              placeholder={tokenStored ? 'Token saved. Enter a new value to replace.' : 'Paste permanent access token'}
               value={metaAccessToken}
               onChange={(e) => setMetaAccessToken(e.target.value)}
             />

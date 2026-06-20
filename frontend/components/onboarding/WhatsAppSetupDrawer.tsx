@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { updateWhatsAppNumber } from '@/lib/api';
+import { APP_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 type WhatsAppSetupDrawerProps = {
@@ -18,8 +19,8 @@ type WhatsAppSetupDrawerProps = {
 const STEPS = [
   'Open Meta Business Suite and create or select your business account.',
   'Add a WhatsApp Business number under WhatsApp Manager.',
-  'Copy your Phone Number ID — you will paste it in Settings later.',
-  'Enter the same number below so PropAgent knows where to route messages.',
+  'Copy your Phone Number ID. You will paste it in Settings later.',
+  `Enter the same number below so ${APP_NAME} knows where to route messages.`,
 ];
 
 export function WhatsAppSetupDrawer({

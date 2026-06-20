@@ -20,6 +20,7 @@ import { Alert } from '@/components/ui/Alert';
 import { WhatsAppSetupDrawer } from '@/components/onboarding/WhatsAppSetupDrawer';
 import { getOnboardingStatus, type OnboardingStatus } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import { APP_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 type StepId = keyof OnboardingStatus['steps'];
@@ -197,7 +198,7 @@ export function OnboardingChecklist() {
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/60 px-8 lg:px-12">
           <Link href="/" className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-sidebar" />
-            <span className="text-base font-bold tracking-tight text-sidebar">PropAgent</span>
+            <span className="text-base font-bold tracking-tight text-sidebar">{APP_NAME}</span>
           </Link>
           <div className="flex items-center gap-2">
             <a
@@ -309,7 +310,7 @@ export function OnboardingChecklist() {
         </main>
 
         <footer className="flex h-12 shrink-0 items-center justify-between border-t border-border/60 px-8 text-[11px] text-muted lg:px-12">
-          <span>© {new Date().getFullYear()} PropAgent</span>
+          <span>© {new Date().getFullYear()} {APP_NAME}</span>
           <div className="flex items-center gap-5">
             <a href="mailto:support@propagent.in" className="hover:text-foreground hover:underline">
               Support

@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/Select';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { APP_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 import {
   COUNTRIES,
@@ -349,7 +350,7 @@ export function SignupWizard() {
                   <Link href="/privacy" className="text-primary hover:underline">
                     Privacy Policy
                   </Link>
-                  . PropAgent will process my data per India&apos;s DPDP Act.
+                  . {APP_NAME} will process my data per India&apos;s DPDP Act.
                 </>
               ) : (
                 <>
@@ -372,7 +373,7 @@ export function SignupWizard() {
 
           {form.country === 'CA' && (
             <Checkbox
-              label="I consent to receive WhatsApp messages from PropAgent about my account."
+              label={`I consent to receive WhatsApp messages from ${APP_NAME} about my account.`}
               checked={caslConsent}
               onChange={(e) => setCaslConsent(e.target.checked)}
               error={errors.caslConsent}

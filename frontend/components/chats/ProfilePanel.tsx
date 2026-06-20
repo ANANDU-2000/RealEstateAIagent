@@ -11,6 +11,7 @@ import {
   getInitials,
   getLeadScoreLabel,
 } from '@/lib/chats-utils';
+import { EMPTY_VALUE } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -71,7 +72,7 @@ export function ProfilePanel({
 
   if (loading && conversation) {
     return (
-      <div className="flex h-full w-full flex-col border-l border-border/80 bg-white p-5 xl:w-[300px] xl:shrink-0">
+      <div className="flex h-full w-full flex-col border-l border-border/80 bg-surface p-5 xl:w-[300px] xl:shrink-0">
         <Skeleton className="mb-4 h-12 w-12 rounded-full" />
         <Skeleton className="mb-2 h-5 w-2/3" />
         <Skeleton className="mb-6 h-4 w-1/2" />
@@ -83,7 +84,7 @@ export function ProfilePanel({
 
   if (!conversation) {
     return (
-      <div className="hidden h-full w-[300px] shrink-0 flex-col border-l border-border/80 bg-white xl:flex">
+      <div className="hidden h-full w-[300px] shrink-0 flex-col border-l border-border/80 bg-surface xl:flex">
         <ProfileEmptyState />
       </div>
     );
@@ -94,7 +95,7 @@ export function ProfilePanel({
   const scoreLabel = getLeadScoreLabel(conversation.leadScore);
 
   return (
-    <div className="animate-slide-in-right flex h-full min-h-0 w-full flex-col overflow-y-auto border-l border-border/80 bg-white xl:w-[300px] xl:shrink-0">
+    <div className="animate-slide-in-right flex h-full min-h-0 w-full flex-col overflow-y-auto border-l border-border/80 bg-surface xl:w-[300px] xl:shrink-0">
       {onClose && (
         <div className="flex items-center justify-between border-b border-border/60 px-4 py-3 xl:hidden">
           <h3 className="font-semibold text-foreground">Customer Profile</h3>
@@ -187,7 +188,7 @@ export function ProfilePanel({
           />
           <DetailRow
             label="Total messages"
-            value={String(conversation.messageCount ?? '—')}
+            value={String(conversation.messageCount ?? EMPTY_VALUE)}
           />
           <DetailRow
             label="Last active"
@@ -202,7 +203,7 @@ export function ProfilePanel({
           <div className="grid gap-2">
             <a
               href={`tel:${conversation.customerPhone}`}
-              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-border bg-white px-3 text-[13px] font-semibold text-foreground transition-colors hover:bg-surface-2"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-border bg-surface px-3 text-[13px] font-semibold text-foreground transition-colors hover:bg-surface-2"
             >
               <Phone className="h-4 w-4" />
               Call Now

@@ -27,10 +27,10 @@ const CUSTOMER_REMINDER_OPTIONS = [
 ];
 
 const FIELD_CLASS =
-  'h-10 rounded-[var(--radius-md)] border-border/90 bg-white shadow-[var(--shadow-xs)]';
+  'h-10 rounded-[var(--radius-md)] border-border bg-surface shadow-[var(--shadow-xs)]';
 
 const TEXTAREA_CLASS = cn(
-  'min-h-[96px] w-full resize-y rounded-[var(--radius-md)] border border-border/90 bg-white px-3.5 py-2.5 text-sm text-foreground shadow-[var(--shadow-xs)]',
+  'min-h-[96px] w-full resize-y rounded-[var(--radius-md)] border border-border/90 bg-surface px-3.5 py-2.5 text-sm text-foreground shadow-[var(--shadow-xs)]',
   'placeholder:text-muted-light outline-none transition-all duration-150',
   'hover:border-border-dark focus:border-primary focus:shadow-[var(--focus-ring)]'
 );
@@ -168,7 +168,7 @@ export default function OfficeSettingsPage() {
             value={officeMapsLink}
             onChange={(e) => setOfficeMapsLink(e.target.value)}
             className={FIELD_CLASS}
-            hint="Optional — helps customers navigate to your office."
+            hint="Optional. Helps customers find your office."
           />
         </div>
       </SettingsSectionCard>

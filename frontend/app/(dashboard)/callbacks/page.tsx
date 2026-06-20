@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { EMPTY_VALUE } from '@/lib/brand';
 
 type TabKey = 'all' | CallbackStatus;
 
@@ -41,7 +42,7 @@ function getErrorMessage(err: unknown): string {
 }
 
 function formatDateTime(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return EMPTY_VALUE;
   return new Date(iso).toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -239,7 +240,7 @@ export default function CallbacksPage() {
         <div className="flex flex-col gap-3">
           {activeTab === 'overdue' && filteredCallbacks.length > 0 && (
             <p className="mb-1 text-[12px] font-semibold uppercase tracking-wider text-danger">
-              Overdue — needs attention
+              Overdue. Needs attention.
             </p>
           )}
           {filteredCallbacks.map((callback) => (

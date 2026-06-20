@@ -19,6 +19,7 @@ import {
   getConversationStatusBadge,
   isInputLocked,
 } from '@/lib/chats-utils';
+import { APP_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
@@ -67,7 +68,7 @@ function MessageBubble({ message }: { message: Message }) {
   if (isSystem) {
     return (
       <div className="flex justify-center py-1">
-        <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] font-medium text-muted shadow-[var(--shadow-xs)]">
+        <span className="rounded-full bg-surface px-3 py-1 text-[11px] font-medium text-muted shadow-[var(--shadow-xs)]">
           {message.content}
         </span>
       </div>
@@ -77,7 +78,7 @@ function MessageBubble({ message }: { message: Message }) {
   return (
     <div className={cn('flex gap-2 py-1', isCustomer ? 'justify-start' : 'justify-end')}>
       {isCustomer && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-muted shadow-[var(--shadow-xs)]">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-xs font-bold text-muted shadow-[var(--shadow-xs)]">
           C
         </div>
       )}
@@ -92,7 +93,7 @@ function MessageBubble({ message }: { message: Message }) {
           className={cn(
             'px-3.5 py-2.5 text-[13px] shadow-[var(--shadow-xs)]',
             isCustomer &&
-              'max-w-[72%] rounded-[18px] rounded-tl-[6px] border border-border/60 bg-white text-foreground',
+              'max-w-[72%] rounded-[18px] rounded-tl-[6px] border border-border bg-surface text-foreground',
             isAi && 'max-w-[72%] rounded-[18px] rounded-tr-[6px] bg-primary text-white',
             isBroker && 'max-w-[72%] rounded-[18px] rounded-tr-[6px] bg-[#1E293B] text-white'
           )}
@@ -131,7 +132,7 @@ function ChatEmptyState() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-        <div className="mb-5 flex h-[72px] w-[72px] items-center justify-center rounded-[20px] border border-border/60 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+        <div className="mb-5 flex h-[72px] w-[72px] items-center justify-center rounded-[20px] border border-border bg-surface shadow-[var(--shadow-md)]">
           <MessageSquare className="h-8 w-8 text-primary/80" strokeWidth={1.75} />
         </div>
         <h3 className="text-[17px] font-bold tracking-tight text-foreground">
@@ -143,16 +144,16 @@ function ChatEmptyState() {
         </p>
       </div>
 
-      <div className="shrink-0 border-t border-border/60 bg-white/60 px-5 py-2.5 backdrop-blur-sm">
+      <div className="shrink-0 border-t border-border bg-surface px-5 py-2.5">
         <div className="flex items-center justify-between text-[11px] text-muted">
           <span className="inline-flex items-center gap-2">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-40" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
             </span>
-            System Online
+            Online
           </span>
-          <span className="font-medium tabular-nums text-muted/80">PropAgent v3</span>
+          <span className="font-medium tabular-nums text-muted/80">{APP_NAME}</span>
         </div>
       </div>
     </div>
@@ -210,7 +211,7 @@ export function ChatPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-surface-2/50">
-      <div className="shrink-0 border-b border-border/60 bg-white px-5 py-3.5">
+      <div className="shrink-0 border-b border-border bg-surface px-5 py-3.5">
         <div className="flex items-center gap-3">
           {showBackButton && onBack && (
             <button
@@ -256,14 +257,14 @@ export function ChatPanel({
           <Alert variant="warning" className="mt-3">
             <div className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
-              <span>Ultra Hot — owner notified. AI paused.</span>
+              <span>Ultra hot lead. Owner notified. AI paused.</span>
             </div>
           </Alert>
         )}
 
         {conversation.leadStage === 'low_budget' && (
           <Alert variant="warning" className="mt-3">
-            Low budget lead — owner notified. AI paused.
+            Low budget lead. Owner notified. AI paused.
           </Alert>
         )}
       </div>
@@ -288,7 +289,7 @@ export function ChatPanel({
           groups.map((group) => (
             <div key={group.dateLabel}>
               <div className="my-4 flex justify-center">
-                <span className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium text-muted shadow-[var(--shadow-xs)]">
+                <span className="rounded-full border border-border bg-surface px-3 py-1 text-[11px] font-medium text-muted shadow-[var(--shadow-xs)]">
                   {group.dateLabel}
                 </span>
               </div>
@@ -301,10 +302,10 @@ export function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      <div className="shrink-0 border-t border-border/60 bg-white px-4 py-3">
+      <div className="shrink-0 border-t border-border bg-surface px-4 py-3">
         {locked ? (
           <Alert variant="warning">
-            AI paused — owner has been notified. Messaging is disabled.
+            AI paused. Owner notified. Messaging is disabled.
           </Alert>
         ) : !humanMode ? (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

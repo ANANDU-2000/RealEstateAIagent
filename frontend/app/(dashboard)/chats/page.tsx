@@ -476,7 +476,7 @@ export default function ChatsPage() {
       {/* Column 3 — lead profile */}
       <div
         className={cn(
-          'fixed inset-0 z-20 bg-white xl:static xl:z-auto xl:flex',
+          'fixed inset-0 z-20 bg-surface xl:static xl:z-auto xl:flex',
           showProfile ? 'flex' : 'hidden',
           showProfileDesktop ? 'xl:flex' : 'xl:hidden'
         )}

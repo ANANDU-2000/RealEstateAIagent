@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { FileText, LayoutDashboard, LogOut, Shield, Users } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useSaAuth } from '@/hooks/useSaAuth';
+import { APP_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -30,7 +31,7 @@ export function SaShell({ children }: { children: React.ReactNode }) {
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
             <div className="flex items-center gap-3">
               <Shield className="h-6 w-6 text-primary" />
-              <span className="font-semibold text-white">PropAgent Super Admin</span>
+              <span className="font-semibold text-white">{APP_NAME} Super Admin</span>
             </div>
             <nav className="flex items-center gap-1">
               {NAV_ITEMS.map(({ href, label, exact }) => {

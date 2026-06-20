@@ -38,7 +38,7 @@ type PropertyFormProps = {
 };
 
 const COMPACT_FIELD =
-  'h-9 rounded-[var(--radius-md)] border-border/90 bg-white/75 shadow-[var(--shadow-xs)] backdrop-blur-sm';
+  'h-9 rounded-[var(--radius-md)] border-border/90 bg-surface shadow-[var(--shadow-xs)]';
 
 const COMPACT_LABEL = 'text-[10px] font-semibold uppercase tracking-[0.08em] text-muted';
 
@@ -251,7 +251,7 @@ export function PropertyForm({
             maxLength={500}
             placeholder="Key highlights buyers should know…"
             className={cn(
-              'min-h-[56px] w-full resize-none rounded-[var(--radius-md)] border border-border/90 bg-white/75 px-3 py-2 text-sm text-foreground shadow-[var(--shadow-xs)] backdrop-blur-sm',
+              'min-h-[56px] w-full resize-none rounded-[var(--radius-md)] border border-border/90 bg-surface px-3 py-2 text-sm text-foreground shadow-[var(--shadow-xs)]',
               'placeholder:text-muted-light outline-none transition-all duration-150',
               'hover:border-border-dark focus:border-primary focus:shadow-[var(--focus-ring)]',
               errors.details && 'border-danger focus:border-danger focus:shadow-[var(--error-ring)]'

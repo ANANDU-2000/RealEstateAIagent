@@ -18,7 +18,7 @@ export function SettingsSectionCard({
   return (
     <section
       className={cn(
-        'rounded-[var(--radius-xl)] border border-border/80 bg-white p-5 shadow-[var(--shadow-card)]',
+        'rounded-[var(--radius-xl)] border border-border bg-surface p-5 shadow-[var(--shadow-card)]',
         className
       )}
     >

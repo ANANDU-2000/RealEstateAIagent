@@ -10,18 +10,17 @@ import {
   HelpCircle,
   Lock,
   Shield,
-  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils';
 import { loginSchema } from '@/lib/validation/auth';
 import { useAuth } from '@/hooks/useAuth';
+import { APP_NAME } from '@/lib/brand';
 
 const TRUST_ITEMS = [
-  { icon: Shield, label: 'Tenant isolated' },
-  { icon: Zap, label: 'Real-time sync' },
-  { icon: Lock, label: 'JWT secured' },
+  { icon: Shield, label: 'Private workspace' },
+  { icon: Lock, label: 'Secure login' },
 ] as const;
 
 export function HomeBrokerAuthCard() {
@@ -65,28 +64,21 @@ export function HomeBrokerAuthCard() {
   }
 
   return (
-    <div className="flex w-full max-w-[440px] flex-col items-center">
+    <div className="flex w-full max-w-[420px] flex-col items-center">
       <div
         className={cn(
-          'w-full rounded-[var(--radius-2xl)] border border-border bg-surface p-8 shadow-[var(--shadow-lg)]',
+          'w-full rounded-[var(--radius-2xl)] border border-border bg-surface p-7 shadow-[var(--shadow-lg)]',
           shake && 'animate-shake'
         )}
       >
-        <div className="mb-6 flex justify-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-sidebar px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
-            <Lock className="h-3 w-3" />
-            End-to-end encrypted
-          </span>
-        </div>
-
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-light">
             <Briefcase className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-foreground">Broker authentication</h2>
+            <h2 className="text-xl font-bold text-foreground">Broker sign in</h2>
             <p className="mt-1 text-sm text-muted">
-              Sign in to your private PropAgent workspace.
+              Sign in to your {APP_NAME} account.
             </p>
           </div>
         </div>
@@ -113,7 +105,7 @@ export function HomeBrokerAuthCard() {
                 placeholder="PA-IN-0003"
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
-                className="h-11 w-full rounded-[var(--radius-md)] border border-border bg-surface pl-10 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-light focus:border-primary focus:shadow-[var(--focus-ring)]"
+                className="h-10 w-full rounded-[var(--radius-md)] border border-border bg-surface pl-10 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-light focus:border-primary focus:shadow-[var(--focus-ring)]"
               />
             </div>
           </div>
@@ -130,7 +122,7 @@ export function HomeBrokerAuthCard() {
           <Input
             label="Password"
             type="password"
-            placeholder="••••••••"
+            placeholder="Enter password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -144,24 +136,24 @@ export function HomeBrokerAuthCard() {
             className="mt-1 bg-sidebar hover:bg-sidebar-2 shadow-none"
             iconRight={<ArrowRight className="h-4 w-4" />}
           >
-            Broker sign in
+            Sign in
           </Button>
         </form>
 
-        <div className="my-6 flex items-center gap-3">
+        <div className="my-5 flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-            Need assistance?
+            Need help?
           </span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
         <a
           href="mailto:support@propagent.in"
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-primary/20 bg-primary-light text-sm font-medium text-primary transition-colors hover:bg-primary-100"
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-primary/20 bg-primary-light text-sm font-medium text-primary transition-colors hover:bg-primary-100"
         >
           <HelpCircle className="h-4 w-4" />
-          Support center
+          Contact support
         </a>
 
         <Link
@@ -169,25 +161,16 @@ export function HomeBrokerAuthCard() {
           className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted transition-colors hover:text-primary"
         >
           <Shield className="h-3.5 w-3.5" />
-          Super Admin access
+          Super Admin sign in
         </Link>
-
-        <p className="mt-6 text-center text-[11px] leading-relaxed text-muted">
-          Public signup may be restricted. Your admin can create accounts at{' '}
-          <Link href="/superadmin/clients" className="text-primary hover:underline">
-            /superadmin/clients
-          </Link>
-          . Brokers sign in here or at{' '}
-          <Link href="/login" className="text-primary hover:underline">
-            /login
-          </Link>
-          .
-        </p>
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-center gap-6">
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-5">
         {TRUST_ITEMS.map(({ icon: Icon, label }) => (
-          <div key={label} className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted">
+          <div
+            key={label}
+            className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted"
+          >
             <Icon className="h-3.5 w-3.5 text-primary" />
             {label}
           </div>

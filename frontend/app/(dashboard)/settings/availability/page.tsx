@@ -315,7 +315,7 @@ export default function AvailabilitySettingsPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted">No slots yet — add a time below.</p>
+                    <p className="text-sm text-muted">No slots yet. Add a time below.</p>
                   )}
                   <AddSlotRow onAdd={(time) => addSlot(dow, time)} />
                 </div>

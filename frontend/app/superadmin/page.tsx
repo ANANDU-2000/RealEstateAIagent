@@ -88,7 +88,7 @@ export default function SuperAdminDashboardPage() {
                   {label}
                 </p>
                 <p className="mt-2 text-3xl font-bold">
-                  {loading ? '—' : (stats?.[key] ?? 0).toLocaleString()}
+                  {loading ? '…' : (stats?.[key] ?? 0).toLocaleString()}
                 </p>
               </div>
               <Icon className="h-5 w-5 text-primary" />

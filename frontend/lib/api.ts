@@ -1,3 +1,5 @@
+import { APP_NAME } from '@/lib/brand';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 function superadminUrl(path: string): string {
@@ -32,7 +34,7 @@ async function saApiFetch<T>(
   } catch {
     throw {
       error:
-        'Cannot reach the PropAgent API. Check your internet connection or contact your administrator.',
+        `Cannot reach the ${APP_NAME} API. Check your internet connection or contact your administrator.`,
       status: 0,
     } satisfies ApiError;
   }
@@ -408,7 +410,7 @@ export async function saLogin(
   } catch {
     throw {
       error:
-        'Cannot reach the PropAgent API. Check your internet connection or contact your administrator.',
+        `Cannot reach the ${APP_NAME} API. Check your internet connection or contact your administrator.`,
       status: 0,
     } satisfies SaLoginError;
   }

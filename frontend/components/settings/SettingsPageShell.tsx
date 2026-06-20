@@ -86,7 +86,7 @@ export function SettingsPageShell({
         )}
       </header>
 
-      <div className="mt-5 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-2 lg:max-h-[calc(100vh-11rem)]">
+      <div className="mt-5 flex min-h-0 flex-1 flex-col gap-4">
         {children}
       </div>
 

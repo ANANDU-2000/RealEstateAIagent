@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { APP_NAME } from '@/lib/brand';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -31,7 +32,7 @@ async function proxyRequest(request: Request, context: RouteContext): Promise<Ne
     });
   } catch {
     return NextResponse.json(
-      { error: 'Cannot reach the PropAgent API server. Check NEXT_PUBLIC_API_URL on Vercel.' },
+      { error: `Cannot reach the ${APP_NAME} API server. Check NEXT_PUBLIC_API_URL on Vercel.` },
       { status: 502 }
     );
   }

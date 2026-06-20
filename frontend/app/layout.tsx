@@ -9,9 +9,11 @@ const inter = Inter({
   subsets: ['latin'],
 });
 
+import { APP_NAME, APP_TAGLINE } from '@/lib/brand';
+
 export const metadata: Metadata = {
-  title: 'PropAgent — Real Estate Operating System',
-  description: 'WhatsApp AI agent, CRM, and property management for brokers.',
+  title: `${APP_NAME} | ${APP_TAGLINE}`,
+  description: 'WhatsApp AI, CRM, and property management for brokers in India, UAE, and Canada.',
 };
 
 export default function RootLayout({

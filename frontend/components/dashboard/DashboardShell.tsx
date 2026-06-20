@@ -20,6 +20,7 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/hooks/useAuth';
 import { getConversationCounts } from '@/lib/api';
+import { APP_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 type NavItem = {
@@ -162,7 +163,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background">
       <aside className="hidden w-[224px] shrink-0 flex-col bg-[#0D1117] text-white lg:flex">
         <div className="border-b border-white/[0.06] px-5 pb-5 pt-6">
           <div className="flex items-center gap-3">
@@ -171,7 +172,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="min-w-0">
               <p className="truncate text-[13px] font-semibold text-white/90">
-                {tenant?.businessName ?? 'PropAgent'}
+                {tenant?.businessName ?? APP_NAME}
               </p>
               <p className="mt-0.5 truncate text-[11px] text-white/40">
                 {tenant?.ownerName ?? 'Broker'}
@@ -235,7 +236,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="flex-1 animate-fade-in px-8 py-7 pb-28 lg:pb-8">{children}</main>
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-5 pb-20 lg:px-7 lg:pb-6">
+          {children}
+        </main>
 
         <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border/80 bg-surface/95 px-1 py-2 backdrop-blur-md lg:hidden">
           {MOBILE_NAV.map((item) => (

@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import { OnboardingChecklist } from '@/components/onboarding/OnboardingChecklist';
+import { APP_NAME } from '@/lib/brand';
 
 export const metadata: Metadata = {
-  title: 'Welcome — PropAgent',
-  description: 'Complete setup steps to start your WhatsApp AI agent.',
+  title: `Welcome | ${APP_NAME}`,
+  description: 'Complete setup to start your WhatsApp AI agent.',
 };
 
 export default function OnboardingPage() {

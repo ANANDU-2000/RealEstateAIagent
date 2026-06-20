@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Building2 } from 'lucide-react';
+import { APP_NAME } from '@/lib/brand';
 
 export function MarketingFooter() {
   return (
@@ -11,10 +12,10 @@ export function MarketingFooter() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-primary" />
-            <span className="font-semibold text-foreground">PropAgent</span>
+            <span className="font-semibold text-foreground">{APP_NAME}</span>
           </div>
           <p className="max-w-sm text-xs leading-relaxed text-muted">
-            © {new Date().getFullYear()} PropAgent. Built for brokers in India, UAE, and Canada.
+            © {new Date().getFullYear()} {APP_NAME}. Built for brokers in India, UAE, and Canada.
             DPDP & CASL aware workflows.
           </p>
         </div>

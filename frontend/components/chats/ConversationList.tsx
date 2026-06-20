@@ -47,7 +47,7 @@ export function ConversationList({
   const tabCounts = getTabCounts(conversations);
 
   return (
-    <div className="flex h-full min-h-0 w-full shrink-0 flex-col border-r border-border/80 bg-white lg:w-[300px]">
+    <div className="flex h-full min-h-0 w-full shrink-0 flex-col border-r border-border bg-surface lg:w-[300px]">
       <div className="shrink-0 border-b border-border/60 px-4 pb-3 pt-4">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="text-[16px] font-bold tracking-tight text-foreground">Live Chats</h2>
@@ -92,7 +92,7 @@ export function ConversationList({
                 className={cn(
                   'shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all',
                   isActive
-                    ? 'bg-white text-foreground shadow-[0_1px_3px_rgba(15,23,42,0.12)]'
+                    ? 'bg-surface text-foreground shadow-[var(--shadow-sm)]'
                     : 'text-muted hover:text-foreground'
                 )}
               >

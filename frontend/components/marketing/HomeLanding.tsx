@@ -15,12 +15,12 @@ const FEATURE_CARDS = [
   {
     href: '/chats',
     icon: LayoutGrid,
-    badge: 'Live view',
+    badge: 'Live',
     badgeClass: 'bg-success-light text-success',
-    title: 'Dashboard',
+    title: 'Chats',
     description:
-      'Monitor live WhatsApp chats, human overrides, and AI replies in one three-panel workspace.',
-    cta: 'Open dashboard',
+      'See WhatsApp conversations, AI replies, and take over when you need to.',
+    cta: 'Open chats',
   },
   {
     href: '/onboarding',
@@ -29,41 +29,37 @@ const FEATURE_CARDS = [
     badgeClass: 'bg-warning-light text-warning',
     title: 'Onboarding',
     description:
-      'Connect WhatsApp, add properties, and configure Arjun before your first lead arrives.',
+      'Connect WhatsApp, add properties, and set up your AI agent before leads arrive.',
     cta: 'Continue setup',
   },
 ] as const;
 
 export function HomeLanding() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-background">
       <MarketingHeader />
 
-      <main
-        id="solutions"
-        className="relative flex-1 overflow-hidden"
-      >
+      <main id="solutions" className="relative flex-1">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_85%_85%,rgba(37,99,235,0.07)_0%,transparent_55%)]"
           aria-hidden
         />
 
-        <div className="relative mx-auto grid max-w-[1280px] gap-12 px-8 py-14 lg:grid-cols-[1fr_440px] lg:items-center lg:gap-16 lg:px-12 lg:py-20">
-          <section id="enterprise" className="flex flex-col gap-8">
+        <div className="relative mx-auto grid max-w-[1280px] gap-10 px-6 py-12 lg:grid-cols-[1fr_420px] lg:items-center lg:gap-14 lg:px-10 lg:py-16">
+          <section id="enterprise" className="flex flex-col gap-7">
             <span className="inline-flex w-fit items-center rounded-full border border-primary/20 bg-primary-light px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
-              Enterprise ready · V3
+              India · UAE · Canada
             </span>
 
-            <div className="flex flex-col gap-4">
-              <h1 className="max-w-xl text-[40px] font-bold leading-[1.1] tracking-tight text-foreground lg:text-[44px]">
+            <div className="flex flex-col gap-3">
+              <h1 className="max-w-xl text-[36px] font-bold leading-[1.12] tracking-tight text-foreground lg:text-[42px]">
                 Never miss a lead.
                 <br />
                 Never lose a deal.
               </h1>
-              <p className="max-w-lg text-base leading-relaxed text-muted">
-                WhatsApp AI agent, CRM, and precision property management for brokers in
-                India, UAE, and Canada. Arjun qualifies leads, books visits, and hands off
-                hot deals — while you close.
+              <p className="max-w-lg text-[15px] leading-relaxed text-muted">
+                WhatsApp AI, CRM, and property tools in one place. Arjun qualifies leads,
+                books visits, and flags hot deals while you close.
               </p>
             </div>
 
