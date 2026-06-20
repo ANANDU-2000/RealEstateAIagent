@@ -414,18 +414,20 @@ router.post('/:id/send', async (req: AuthRequest, res: Response) => {
     const settingsResult = await client.query<{
       meta_phone_number_id: string | null;
       meta_access_token: string | null;
-      whatsapp_connected: boolean;
     }>(
-      `SELECT meta_phone_number_id, meta_access_token, whatsapp_connected
+      `SELECT meta_phone_number_id, meta_access_token
        FROM broker_settings
        WHERE tenant_id = $1`,
       [tenantId]
     );
 
     const settings = settingsResult.rows[0];
-    if (!settings?.whatsapp_connected || !settings.meta_phone_number_id || !settings.meta_access_token) {
+    if (!settings?.meta_phone_number_id || !settings.meta_access_token) {
       await client.query('ROLLBACK');
-      res.status(502).json({ error: 'WhatsApp not connected' });
+      res.status(502).json({
+        error:
+          'WhatsApp credentials missing. Open Settings → WhatsApp and save Phone Number ID plus access token.',
+      });
       return;
     }
 

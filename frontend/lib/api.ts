@@ -268,6 +268,8 @@ export async function updateWhatsAppSettings(
   metaPhoneNumberId: string | null;
   metaWabaId: string | null;
   whatsappConnected: boolean;
+  credentialsReady?: boolean;
+  credentialsChanged?: boolean;
 }> {
   return apiFetch(
     '/settings/whatsapp',
@@ -289,7 +291,7 @@ export async function getWhatsAppHealth(token: string): Promise<WhatsAppHealth> 
 export async function registerWhatsAppPhone(
   token: string,
   pin: string
-): Promise<{ ok: boolean; message: string }> {
+): Promise<{ ok: boolean; message: string; whatsappConnected?: boolean }> {
   return apiFetch(
     '/settings/whatsapp/register-phone',
     { method: 'POST', body: JSON.stringify({ pin }) },

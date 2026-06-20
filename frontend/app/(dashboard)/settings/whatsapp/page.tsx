@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { SettingsPageShell } from '@/components/settings/SettingsPageShell';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
@@ -65,6 +65,7 @@ export default function WhatsAppSettingsPage() {
   const [webhookHealth, setWebhookHealth] = useState<WhatsAppHealth | null>(null);
   const [registerPin, setRegisterPin] = useState('');
   const [registering, setRegistering] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const loadSettings = useCallback(async () => {
     if (!accessToken) return;
@@ -101,6 +102,7 @@ export default function WhatsAppSettingsPage() {
   async function handleSave() {
     if (!accessToken) return;
     setFormError(null);
+    setSaveSuccess(null);
 
     const phoneId = metaPhoneNumberId.trim();
     const hasToken = Boolean(metaAccessToken.trim()) || tokenStored;
@@ -136,7 +138,7 @@ export default function WhatsAppSettingsPage() {
               metaPhoneNumberId: result.metaPhoneNumberId,
               metaWabaId: result.metaWabaId,
               whatsappConnected: result.whatsappConnected,
-              hasAccessToken: result.whatsappConnected || tokenStored,
+              hasAccessToken: Boolean(result.credentialsReady ?? tokenStored),
             }
           : null
       );
@@ -145,7 +147,18 @@ export default function WhatsAppSettingsPage() {
         setMetaAccessToken('');
         setShowToken(false);
       }
-      toast('Credentials saved. Send a test message to verify WhatsApp.');
+      if (result.credentialsChanged) {
+        setSaveSuccess(
+          'Saved. Connection reset because credentials changed — send a test message to verify.'
+        );
+        toast('Credentials updated. Send a test message to verify WhatsApp.');
+      } else if (result.whatsappConnected) {
+        setSaveSuccess('Saved. WhatsApp is connected and verified.');
+        toast('Settings saved. WhatsApp is connected.');
+      } else {
+        setSaveSuccess('Saved. Credentials stored — use “Send test message” to verify.');
+        toast('Settings saved.');
+      }
       void loadSettings();
     } catch (err) {
       const message =
@@ -161,12 +174,17 @@ export default function WhatsAppSettingsPage() {
   async function handleTest() {
     if (!accessToken) return;
     setFormError(null);
+    setSaveSuccess(null);
     setTesting(true);
     try {
       const result = await testWhatsAppConnection(accessToken);
-      toast(result.message);
       if (result.whatsappConnected) {
+        setSaveSuccess('Test message sent successfully. WhatsApp is connected.');
         setSettings((prev) => (prev ? { ...prev, whatsappConnected: true } : prev));
+        toast('Test passed — WhatsApp is connected.');
+      } else {
+        setSaveSuccess(null);
+        toast(result.message);
       }
       void loadSettings();
     } catch (err) {
@@ -183,11 +201,16 @@ export default function WhatsAppSettingsPage() {
   async function handleRegisterPhone() {
     if (!accessToken) return;
     setFormError(null);
+    setSaveSuccess(null);
     setRegistering(true);
     try {
       const result = await registerWhatsAppPhone(accessToken, registerPin.trim());
-      toast(result.message);
       setRegisterPin('');
+      if (result.whatsappConnected) {
+        setSaveSuccess('Phone registered with Meta. Send a test message, then try WhatsApp again.');
+        setSettings((prev) => (prev ? { ...prev, whatsappConnected: true } : prev));
+      }
+      toast(result.message);
       void loadSettings();
     } catch (err) {
       const message =
@@ -208,6 +231,7 @@ export default function WhatsAppSettingsPage() {
     if (!confirmed) return;
 
     setFormError(null);
+    setSaveSuccess(null);
     setDisconnecting(true);
     try {
       await updateWhatsAppSettings(accessToken, {
@@ -437,6 +461,14 @@ export default function WhatsAppSettingsPage() {
         </div>
 
         {formError && <Alert variant="error">{formError}</Alert>}
+        {saveSuccess && !formError && (
+          <Alert variant="success">
+            <span className="inline-flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              {saveSuccess}
+            </span>
+          </Alert>
+        )}
 
         <div className="flex flex-wrap gap-3">
           <Button loading={saving} onClick={() => void handleSave()}>

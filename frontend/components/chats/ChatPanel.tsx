@@ -228,6 +228,11 @@ export function ChatPanel({
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="truncate text-[15px] font-bold text-foreground">{displayName}</h3>
               <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
+              {!locked && (
+                <Badge variant={humanMode ? 'primary' : 'success'}>
+                  {humanMode ? 'Human mode — AI off' : `${aiName} replying`}
+                </Badge>
+              )}
             </div>
             <p className="text-[13px] text-muted">{conversation.customerPhone}</p>
           </div>
@@ -310,7 +315,8 @@ export function ChatPanel({
         ) : !humanMode ? (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[13px] text-foreground">
-              <span className="font-semibold text-primary">{aiName}</span> is handling this chat
+              <span className="font-semibold text-success">{aiName}</span> is replying on WhatsApp.
+              You can read messages here; click Take Over to reply yourself.
             </p>
             <Button onClick={onTakeOver} size="sm">
               Take Over
@@ -318,6 +324,9 @@ export function ChatPanel({
           </div>
         ) : (
           <div className="space-y-3">
+            <p className="text-[12px] text-muted">
+              Human mode — {aiName} will not reply until you hand the chat back.
+            </p>
             <div className="flex items-end gap-2">
               <button
                 type="button"

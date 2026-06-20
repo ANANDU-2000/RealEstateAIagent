@@ -75,6 +75,13 @@ function getWebhookCallbackUrl(): string {
   return `${base.replace(/\/$/, '')}/webhook/whatsapp`;
 }
 
+function hasWhatsAppCredentials(
+  metaPhoneNumberId: string | null,
+  metaAccessToken: string | null
+): boolean {
+  return Boolean(metaPhoneNumberId?.trim() && metaAccessToken?.trim());
+}
+
 function formatSlotTime(slotTime: string): string {
   return slotTime.slice(0, 5);
 }
@@ -280,8 +287,6 @@ router.patch('/whatsapp', async (req: AuthRequest, res: Response) => {
           ? null
           : data.metaWabaId.trim() || null;
 
-    const whatsappConnected = false;
-
     if (metaAccessToken && !metaPhoneNumberId) {
       res.status(400).json({
         error: 'Phone Number ID is required when an access token is set.',
@@ -289,7 +294,13 @@ router.patch('/whatsapp', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    const credentialsChanged =
+      metaPhoneNumberId !== (row?.meta_phone_number_id ?? null) ||
+      metaAccessToken !== (row?.meta_access_token ?? null);
+
+    const whatsappConnected = credentialsChanged ? false : Boolean(row?.whatsapp_connected);
     const wasConnected = Boolean(row?.whatsapp_connected);
+    const credentialsReady = hasWhatsAppCredentials(metaPhoneNumberId, metaAccessToken);
 
     await pool.query(
       `UPDATE broker_settings
@@ -303,9 +314,9 @@ router.patch('/whatsapp', async (req: AuthRequest, res: Response) => {
              WHEN $5 = false THEN NULL
              ELSE whatsapp_connected_at
            END,
-           last_whatsapp_test_at = NULL,
-           last_whatsapp_test_ok = NULL,
-           last_whatsapp_error = NULL,
+           last_whatsapp_test_at = CASE WHEN $8 THEN NULL ELSE last_whatsapp_test_at END,
+           last_whatsapp_test_ok = CASE WHEN $8 THEN NULL ELSE last_whatsapp_test_ok END,
+           last_whatsapp_error = CASE WHEN $8 THEN NULL ELSE last_whatsapp_error END,
            updated_at = NOW()
        WHERE tenant_id = $7`,
       [
@@ -316,6 +327,7 @@ router.patch('/whatsapp', async (req: AuthRequest, res: Response) => {
         whatsappConnected,
         wasConnected,
         tenantId,
+        credentialsChanged,
       ]
     );
 
@@ -325,6 +337,8 @@ router.patch('/whatsapp', async (req: AuthRequest, res: Response) => {
       metaPhoneNumberId,
       metaWabaId,
       whatsappConnected,
+      credentialsReady,
+      credentialsChanged,
     });
   } catch (error) {
     console.error('Update WhatsApp settings failed:', error);
@@ -510,10 +524,21 @@ router.post('/whatsapp/register-phone', async (req: AuthRequest, res: Response) 
       return;
     }
 
+    await pool.query(
+      `UPDATE broker_settings
+       SET whatsapp_connected = true,
+           whatsapp_connected_at = COALESCE(whatsapp_connected_at, NOW()),
+           last_whatsapp_error = NULL,
+           updated_at = NOW()
+       WHERE tenant_id = $1`,
+      [tenantId]
+    );
+
     res.json({
       ok: true,
       message:
-        'Phone registered with Meta. Send a test message, then message this number from WhatsApp to verify chats and AI replies.',
+        'Phone registered with Meta. Send a test message, then message this number from WhatsApp.',
+      whatsappConnected: true,
     });
   } catch (error) {
     console.error('WhatsApp register phone failed:', error);
