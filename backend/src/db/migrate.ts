@@ -27,13 +27,24 @@ function findMigrationsDir(): string | null {
 }
 
 export async function runMigrations(): Promise<void> {
-  const schemaPath = findSchemaPath();
-  const sql = fs.readFileSync(schemaPath, 'utf8');
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
-    await client.query(sql);
+
+    const initCheck = await client.query<{ tenants: string | null }>(
+      `SELECT to_regclass('public.tenants') AS tenants`
+    );
+    const databaseInitialized = Boolean(initCheck.rows[0]?.tenants);
+
+    if (!databaseInitialized) {
+      const schemaPath = findSchemaPath();
+      const sql = fs.readFileSync(schemaPath, 'utf8');
+      await client.query(sql);
+      console.log('Applied base schema.sql');
+    } else {
+      console.log('Database already initialized — skipping schema.sql');
+    }
 
     const migrationsDir = findMigrationsDir();
     if (migrationsDir) {
