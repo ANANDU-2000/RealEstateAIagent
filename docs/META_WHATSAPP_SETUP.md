@@ -17,6 +17,11 @@ Complete these steps in Meta Business Manager. PropAgent cannot fix error **(#13
    - `whatsapp_business_management`
 3. Paste the token in PropAgent → Settings → WhatsApp → **Access token** → Save.
 
+## Production URLs
+
+- **Frontend:** https://real-estate-a-iagent.vercel.app
+- **Backend:** https://realestateaiagent-0ubp.onrender.com
+
 ## 3. Webhook (required for chats to appear)
 
 | Field | Value |
