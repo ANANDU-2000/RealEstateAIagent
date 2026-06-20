@@ -210,7 +210,9 @@ export type WhatsAppHealth = {
   verifyTokenConfigured: boolean;
   appSecretConfigured: boolean;
   callbackUrl: string;
+  verifyTokenHint?: string;
   lastInboundMessageAt: string | null;
+  lastWebhookAt?: string | null;
 };
 
 export type WhatsAppSettingsUpdate = {
@@ -282,6 +284,17 @@ export async function testWhatsAppConnection(
 
 export async function getWhatsAppHealth(token: string): Promise<WhatsAppHealth> {
   return apiFetch('/settings/whatsapp/health', {}, token);
+}
+
+export async function registerWhatsAppPhone(
+  token: string,
+  pin: string
+): Promise<{ ok: boolean; message: string }> {
+  return apiFetch(
+    '/settings/whatsapp/register-phone',
+    { method: 'POST', body: JSON.stringify({ pin }) },
+    token
+  );
 }
 
 export async function updateWhatsAppNumber(

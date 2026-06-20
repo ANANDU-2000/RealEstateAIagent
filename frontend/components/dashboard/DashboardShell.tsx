@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { getConversationCounts } from '@/lib/api';
 import { APP_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
+import { WrongUrlBanner } from '@/components/dashboard/WrongUrlBanner';
 
 type NavItem = {
   href: string;
@@ -237,6 +238,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-5 pb-20 lg:px-7 lg:pb-6">
+          <WrongUrlBanner />
           {children}
         </main>
 

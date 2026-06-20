@@ -441,15 +441,83 @@ router.get('/whatsapp/health', async (req: AuthRequest, res: Response) => {
       [tenantId]
     );
 
+    const webhookResult = await pool.query<{ last_webhook_at: string | null }>(
+      `SELECT last_webhook_at FROM broker_settings WHERE tenant_id = $1`,
+      [tenantId]
+    );
+
     res.json({
       verifyTokenConfigured: Boolean(process.env.META_VERIFY_TOKEN?.trim()),
       appSecretConfigured: Boolean(process.env.META_APP_SECRET?.trim()),
       callbackUrl: getWebhookCallbackUrl(),
+      verifyTokenHint: process.env.META_VERIFY_TOKEN ? '(configured on server)' : 'Missing on Render',
       lastInboundMessageAt: inboundResult.rows[0]?.last_inbound_at ?? null,
+      lastWebhookAt: webhookResult.rows[0]?.last_webhook_at ?? null,
     });
   } catch (error) {
     console.error('Get WhatsApp health failed:', error);
     res.status(500).json({ error: 'Failed to load WhatsApp health' });
+  }
+});
+
+router.post('/whatsapp/register-phone', async (req: AuthRequest, res: Response) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  const pin = typeof req.body?.pin === 'string' ? req.body.pin.trim() : '';
+  if (!/^\d{6}$/.test(pin)) {
+    res.status(400).json({ error: 'Enter the 6-digit two-step verification PIN from Meta WhatsApp Manager.' });
+    return;
+  }
+
+  try {
+    const result = await pool.query<{
+      meta_phone_number_id: string | null;
+      meta_access_token: string | null;
+    }>(
+      `SELECT meta_phone_number_id, meta_access_token FROM broker_settings WHERE tenant_id = $1`,
+      [tenantId]
+    );
+
+    const row = result.rows[0];
+    if (!row?.meta_phone_number_id || !row.meta_access_token) {
+      res.status(400).json({ error: 'Save Phone Number ID and access token first.' });
+      return;
+    }
+
+    const response = await fetch(
+      `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${row.meta_phone_number_id}/register`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${row.meta_access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          pin,
+        }),
+      }
+    );
+
+    const payload = (await response.json()) as { success?: boolean; error?: { message?: string } };
+    if (!response.ok) {
+      const errorMessage = payload.error?.message ?? 'Phone registration failed';
+      res.status(502).json({ error: whatsappErrorHelp(errorMessage) });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      message:
+        'Phone registered with Meta. Send a test message, then message this number from WhatsApp to verify chats and AI replies.',
+    });
+  } catch (error) {
+    console.error('WhatsApp register phone failed:', error);
+    res.status(500).json({ error: 'Failed to register phone with Meta' });
   }
 });
 

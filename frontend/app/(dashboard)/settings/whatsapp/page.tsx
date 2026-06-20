@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/Toast';
 import {
   getWhatsAppHealth,
   getWhatsAppSettings,
+  registerWhatsAppPhone,
   testWhatsAppConnection,
   updateWhatsAppSettings,
   type WhatsAppHealth,
@@ -62,6 +63,8 @@ export default function WhatsAppSettingsPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [webhookHealth, setWebhookHealth] = useState<WhatsAppHealth | null>(null);
+  const [registerPin, setRegisterPin] = useState('');
+  const [registering, setRegistering] = useState(false);
 
   const loadSettings = useCallback(async () => {
     if (!accessToken) return;
@@ -174,6 +177,26 @@ export default function WhatsAppSettingsPage() {
       setFormError(message);
     } finally {
       setTesting(false);
+    }
+  }
+
+  async function handleRegisterPhone() {
+    if (!accessToken) return;
+    setFormError(null);
+    setRegistering(true);
+    try {
+      const result = await registerWhatsAppPhone(accessToken, registerPin.trim());
+      toast(result.message);
+      setRegisterPin('');
+      void loadSettings();
+    } catch (err) {
+      const message =
+        err && typeof err === 'object' && 'error' in err
+          ? String((err as { error: string }).error)
+          : 'Phone registration failed.';
+      setFormError(message);
+    } finally {
+      setRegistering(false);
     }
   }
 
@@ -303,15 +326,50 @@ export default function WhatsAppSettingsPage() {
             </li>
             {webhookHealth && (
               <li>
+                Last webhook ping:{' '}
+                {webhookHealth.lastWebhookAt
+                  ? formatConnectedAt(webhookHealth.lastWebhookAt) ?? 'Recently'
+                  : 'None — set Meta webhook URL and subscribe to messages'}
+              </li>
+            )}
+            {webhookHealth && (
+              <li>
                 Last inbound message:{' '}
                 {webhookHealth.lastInboundMessageAt
                   ? formatConnectedAt(webhookHealth.lastInboundMessageAt) ?? 'Recently'
-                  : 'None yet — configure Meta webhook and message your business number'}
+                  : 'None yet — register phone, then message your business number from WhatsApp'}
               </li>
             )}
           </ul>
         </Card>
       )}
+
+      <Card className="flex flex-col gap-4">
+        <div>
+          <p className="text-sm font-medium text-foreground">Register phone with Meta</p>
+          <p className="mt-1 text-sm text-muted">
+            If test messages fail with error #133010, enter your 6-digit two-step verification PIN
+            from Meta WhatsApp Manager and register the phone here.
+          </p>
+        </div>
+        <Input
+          label="Two-step verification PIN"
+          type="password"
+          inputMode="numeric"
+          maxLength={6}
+          placeholder="6-digit PIN"
+          value={registerPin}
+          onChange={(e) => setRegisterPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+        />
+        <Button
+          variant="outline"
+          loading={registering}
+          disabled={registerPin.length !== 6}
+          onClick={() => void handleRegisterPhone()}
+        >
+          Register phone with Meta
+        </Button>
+      </Card>
 
       {missingPhoneNumberId && (
         <Alert variant="warning">

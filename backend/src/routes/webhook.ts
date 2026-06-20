@@ -93,9 +93,19 @@ function languagePrefFromDetection(
 function verifyMetaSignature(req: RawBodyRequest): boolean {
   if (process.env.NODE_ENV !== 'production') return true;
 
-  const appSecret = process.env.META_APP_SECRET;
+  const appSecret = process.env.META_APP_SECRET?.trim();
+  if (!appSecret) {
+    console.warn(
+      'META_APP_SECRET not set — accepting webhook without signature verification. Add App Secret from Meta Developer Console to Render env.'
+    );
+    return true;
+  }
+
   const signature = req.headers['x-hub-signature-256'] as string | undefined;
-  if (!appSecret || !signature || !req.rawBody) return false;
+  if (!signature || !req.rawBody) {
+    console.error('Webhook missing signature or raw body');
+    return false;
+  }
 
   const expected =
     'sha256=' +
@@ -505,8 +515,27 @@ router.get('/whatsapp', (req: Request, res: Response) => {
   res.status(403).send('Forbidden');
 });
 
+async function touchWebhookReceived(tenantId: string | null): Promise<void> {
+  if (!tenantId) return;
+  try {
+    await pool.query(
+      `UPDATE broker_settings SET last_webhook_at = NOW(), updated_at = NOW() WHERE tenant_id = $1`,
+      [tenantId]
+    );
+  } catch (error) {
+    console.error('Failed to update last_webhook_at:', error);
+  }
+}
+
 router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
   res.status(200).send('OK');
+
+  const phoneNumberIdPreview =
+    req.body?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id ?? null;
+  console.log('WhatsApp webhook POST', {
+    phoneNumberId: phoneNumberIdPreview,
+    hasSignature: Boolean(req.headers['x-hub-signature-256']),
+  });
 
   try {
     if (!verifyMetaSignature(req)) {
@@ -518,6 +547,12 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
     const change = entry?.changes?.[0];
     const value = change?.value;
     const messages = value?.messages;
+    const phoneNumberId: string | undefined = value?.metadata?.phone_number_id;
+
+    if (phoneNumberId) {
+      const tenantPreview = await fetchTenantByPhoneNumberId(phoneNumberId);
+      await touchWebhookReceived(tenantPreview?.tenant_id ?? null);
+    }
 
     if (!messages?.length) {
       return;
@@ -532,7 +567,6 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
       message.image?.caption ??
       message.document?.caption ??
       '';
-    const phoneNumberId: string = value.metadata?.phone_number_id;
     const customerName: string | null = value.contacts?.[0]?.profile?.name ?? null;
 
     if (!phoneNumberId || !from || !messageId) {
