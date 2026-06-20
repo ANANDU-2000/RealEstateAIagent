@@ -150,7 +150,7 @@ export default function AiSettingsPage() {
   return (
     <SettingsPageShell
       title="AI Agent"
-      description="Configure how Arjun talks to your leads on WhatsApp."
+      description={`Configure how ${aiName.trim() || 'your AI agent'} talks to your leads on WhatsApp.`}
       loading={loading}
       error={error}
       onRetry={() => void loadSettings()}
@@ -176,7 +176,7 @@ export default function AiSettingsPage() {
             className={FIELD_CLASS}
             hint={
               canCustomizeName
-                ? 'This is the name Arjun uses when introducing itself.'
+                ? `This is the name ${aiName.trim() || 'your agent'} uses when introducing itself.`
                 : 'Upgrade to Pro to customize your AI agent name.'
             }
           />
@@ -204,7 +204,7 @@ export default function AiSettingsPage() {
 
       <SettingsSectionCard
         title="Follow-up rules"
-        description="Arjun sends at most 2 follow-ups per lead. This cannot be increased."
+        description={`${aiName.trim() || 'Your AI agent'} sends at most 2 follow-ups per lead. This cannot be increased.`}
       >
         <div className="flex flex-col gap-4">
           <Alert variant="info">
@@ -248,7 +248,7 @@ export default function AiSettingsPage() {
             onChange={(e) => setNoMsgAfterHour(Number(e.target.value))}
             options={NO_MSG_HOUR_OPTIONS}
             className={FIELD_CLASS}
-            hint="Arjun will not send proactive messages or follow-ups after this hour (local time)."
+            hint={`${aiName.trim() || 'Your AI agent'} will not send proactive messages or follow-ups after this hour (local time).`}
           />
         </div>
       </SettingsSectionCard>
@@ -263,7 +263,7 @@ export default function AiSettingsPage() {
             locked
           />
           <SettingsToggleRow
-            label="Allow Arjun to answer property-specific questions"
+            label={`Allow ${aiName.trim() || 'your AI agent'} to answer property-specific questions`}
             description="Enabled by default for your workspace."
             checked={answerPropertyQuestions}
             disabled
@@ -299,7 +299,7 @@ export default function AiSettingsPage() {
           </p>
         </div>
         <p className="mt-3 text-[12px] text-muted-light">
-          Read-only summary of how Arjun is configured. Full prompt is managed in Super Admin.
+          Read-only summary of how {aiName.trim() || 'your AI agent'} is configured. Full prompt is managed in Super Admin.
         </p>
       </SettingsSectionCard>
     </SettingsPageShell>

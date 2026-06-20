@@ -10,9 +10,11 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 import {
+  getWhatsAppHealth,
   getWhatsAppSettings,
   testWhatsAppConnection,
   updateWhatsAppSettings,
+  type WhatsAppHealth,
   type WhatsAppSettings,
 } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,10 +22,11 @@ import { cn } from '@/lib/utils';
 
 const SETUP_STEPS = [
   'Open Meta Business Suite and select or create your business account.',
-  'In WhatsApp Manager, add your WhatsApp Business phone number.',
+  'In WhatsApp Manager, register your phone number until Meta shows Connected (fixes error #133010).',
   'Copy the Phone Number ID and WhatsApp Business Account ID (WABA).',
   'Generate a permanent access token with whatsapp_business_messaging permission.',
-  'Paste the credentials below and save. Then send a test message to verify.',
+  'Paste credentials below, save, then send a test message. Connected status requires a successful test.',
+  'In Meta App → WhatsApp → Configuration, set webhook URL and verify token (see Webhook health below).',
 ];
 
 function formatConnectedAt(iso: string | null): string | null {
@@ -58,14 +61,19 @@ export default function WhatsAppSettingsPage() {
   const [testing, setTesting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [webhookHealth, setWebhookHealth] = useState<WhatsAppHealth | null>(null);
 
   const loadSettings = useCallback(async () => {
     if (!accessToken) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await getWhatsAppSettings(accessToken);
+      const [data, health] = await Promise.all([
+        getWhatsAppSettings(accessToken),
+        getWhatsAppHealth(accessToken).catch(() => null),
+      ]);
       setSettings(data);
+      setWebhookHealth(health);
       setWhatsappNumber(data.whatsappNumber ?? '');
       setMetaPhoneNumberId(data.metaPhoneNumberId ?? '');
       setMetaWabaId(data.metaWabaId ?? '');
@@ -134,7 +142,7 @@ export default function WhatsAppSettingsPage() {
         setMetaAccessToken('');
         setShowToken(false);
       }
-      toast('WhatsApp settings saved');
+      toast('Credentials saved. Send a test message to verify WhatsApp.');
       void loadSettings();
     } catch (err) {
       const message =
@@ -154,6 +162,10 @@ export default function WhatsAppSettingsPage() {
     try {
       const result = await testWhatsAppConnection(accessToken);
       toast(result.message);
+      if (result.whatsappConnected) {
+        setSettings((prev) => (prev ? { ...prev, whatsappConnected: true } : prev));
+      }
+      void loadSettings();
     } catch (err) {
       const message =
         err && typeof err === 'object' && 'error' in err
@@ -200,9 +212,17 @@ export default function WhatsAppSettingsPage() {
   }
 
   const connected = settings?.whatsappConnected ?? false;
+  const credentialsSaved =
+    settings?.credentialsSaved ??
+    (tokenStored && Boolean(metaPhoneNumberId.trim() || settings?.metaPhoneNumberId));
   const connectedAt = formatConnectedAt(settings?.whatsappConnectedAt ?? null);
+  const lastTestFailed = settings?.lastWhatsappTestOk === false && settings?.lastWhatsappError;
   const missingPhoneNumberId =
-    !connected && (tokenStored || Boolean(metaAccessToken.trim())) && !metaPhoneNumberId.trim();
+    !credentialsSaved && (tokenStored || Boolean(metaAccessToken.trim())) && !metaPhoneNumberId.trim();
+  const canTest =
+    Boolean(metaPhoneNumberId.trim() || settings?.metaPhoneNumberId) &&
+    (tokenStored || Boolean(metaAccessToken.trim()) || settings?.hasAccessToken);
+  const webhookHealthData = webhookHealth ?? settings?.webhookHealth;
 
   return (
     <SettingsPageShell
@@ -218,39 +238,80 @@ export default function WhatsAppSettingsPage() {
             <p className="text-sm font-medium text-foreground">Connection status</p>
             <p className="mt-0.5 text-sm text-muted">
               {connected
-                ? whatsappNumber || 'Number configured'
-                : 'Not connected. Add Meta credentials below.'}
+                ? whatsappNumber || 'Verified and ready'
+                : credentialsSaved
+                  ? 'Credentials saved. Send a test message to verify.'
+                  : 'Not connected. Add Meta credentials below.'}
             </p>
             {connectedAt && (
               <p className="mt-1 text-xs text-muted">Connected since {connectedAt}</p>
             )}
           </div>
-          <Badge variant={connected ? 'success' : 'warning'}>
-            {connected ? 'Connected' : 'Disconnected'}
+          <Badge variant={connected ? 'success' : credentialsSaved ? 'warning' : 'warning'}>
+            {connected ? 'Connected' : credentialsSaved ? 'Needs verification' : 'Disconnected'}
           </Badge>
         </div>
 
-        {connected && (
+        {lastTestFailed && !connected && (
+          <Alert variant="error">{settings?.lastWhatsappError}</Alert>
+        )}
+
+        {(connected || credentialsSaved) && (
           <div className="flex flex-wrap gap-2 border-t border-border pt-4">
             <Button
               variant="outline"
               size="sm"
               loading={testing}
+              disabled={!canTest}
               onClick={() => void handleTest()}
             >
               Send test message
             </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              loading={disconnecting}
-              onClick={() => void handleDisconnect()}
-            >
-              Disconnect
-            </Button>
+            {connected && (
+              <Button
+                variant="danger"
+                size="sm"
+                loading={disconnecting}
+                onClick={() => void handleDisconnect()}
+              >
+                Disconnect
+              </Button>
+            )}
           </div>
         )}
       </Card>
+
+      {webhookHealthData && (
+        <Card className="flex flex-col gap-3">
+          <p className="text-sm font-medium text-foreground">Webhook health</p>
+          <ul className="space-y-2 text-sm text-muted">
+            <li>
+              Verify token on server:{' '}
+              <span className={webhookHealthData.verifyTokenConfigured ? 'text-success' : 'text-danger'}>
+                {webhookHealthData.verifyTokenConfigured ? 'Configured' : 'Missing on Render'}
+              </span>
+            </li>
+            <li>
+              App secret on server:{' '}
+              <span className={webhookHealthData.appSecretConfigured ? 'text-success' : 'text-danger'}>
+                {webhookHealthData.appSecretConfigured ? 'Configured' : 'Missing — inbound chats will not appear'}
+              </span>
+            </li>
+            <li>
+              Callback URL:{' '}
+              <code className="break-all text-xs text-foreground">{webhookHealthData.callbackUrl}</code>
+            </li>
+            {webhookHealth && (
+              <li>
+                Last inbound message:{' '}
+                {webhookHealth.lastInboundMessageAt
+                  ? formatConnectedAt(webhookHealth.lastInboundMessageAt) ?? 'Recently'
+                  : 'None yet — configure Meta webhook and message your business number'}
+              </li>
+            )}
+          </ul>
+        </Card>
+      )}
 
       {missingPhoneNumberId && (
         <Alert variant="warning">
@@ -323,16 +384,6 @@ export default function WhatsAppSettingsPage() {
           <Button loading={saving} onClick={() => void handleSave()}>
             Save settings
           </Button>
-          {!connected && (
-            <Button
-              variant="outline"
-              loading={testing}
-              disabled={!metaPhoneNumberId.trim() || (!tokenStored && !metaAccessToken.trim())}
-              onClick={() => void handleTest()}
-            >
-              Send test message
-            </Button>
-          )}
         </div>
       </Card>
 

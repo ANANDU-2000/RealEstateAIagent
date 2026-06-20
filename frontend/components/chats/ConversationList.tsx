@@ -128,7 +128,7 @@ export function ConversationList({
           <EmptyState
             icon={MessageSquare}
             title="No conversations yet"
-            description="When buyers message your WhatsApp number, conversations will appear here."
+            description="When buyers message your WhatsApp number, conversations will appear here. Open a chat to use Take Over or Hand Back to AI."
           />
         ) : (
           <ul>

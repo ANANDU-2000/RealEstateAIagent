@@ -139,8 +139,8 @@ function ChatEmptyState() {
           Select a conversation
         </h3>
         <p className="mt-2 max-w-[340px] text-[13px] leading-relaxed text-muted">
-          Choose a customer from the left list to view messages, lead details, and start
-          responding.
+          Choose a customer from the left list to view messages, lead details, and use Take Over or
+          Hand Back to AI.
         </p>
       </div>
 

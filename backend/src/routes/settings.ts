@@ -32,6 +32,13 @@ type BrokerSettingsRow = {
   whatsapp_connected: boolean;
 };
 
+function whatsappErrorHelp(message: string): string {
+  if (message.includes('133010')) {
+    return `${message}. Register this phone number in Meta WhatsApp Manager (WABA → Phone numbers → Register). Until Meta shows Connected, PropAgent cannot send or receive messages.`;
+  }
+  return message;
+}
+
 type AiSettingsRow = {
   ai_name: string;
   ai_tone: string;
@@ -57,6 +64,15 @@ async function ensureBrokerSettings(tenantId: string): Promise<void> {
 
 function normalizeWhatsappRecipient(number: string): string {
   return number.replace(/\D/g, '');
+}
+
+function getWebhookCallbackUrl(): string {
+  const base =
+    process.env.RENDER_EXTERNAL_URL ??
+    (process.env.NODE_ENV === 'production'
+      ? 'https://realestateaiagent-0ubp.onrender.com'
+      : `http://localhost:${process.env.PORT ?? 3001}`);
+  return `${base.replace(/\/$/, '')}/webhook/whatsapp`;
 }
 
 function formatSlotTime(slotTime: string): string {
@@ -165,19 +181,28 @@ router.get('/whatsapp', async (req: AuthRequest, res: Response) => {
       has_access_token: boolean;
       whatsapp_connected: boolean;
       whatsapp_connected_at: string | null;
+      last_whatsapp_test_at: string | null;
+      last_whatsapp_test_ok: boolean | null;
+      last_whatsapp_error: string | null;
     }>(
       `SELECT whatsapp_number,
               meta_phone_number_id,
               meta_waba_id,
               (meta_access_token IS NOT NULL AND meta_access_token <> '') AS has_access_token,
               COALESCE(whatsapp_connected, false) AS whatsapp_connected,
-              whatsapp_connected_at
+              whatsapp_connected_at,
+              last_whatsapp_test_at,
+              last_whatsapp_test_ok,
+              last_whatsapp_error
        FROM broker_settings
        WHERE tenant_id = $1`,
       [tenantId]
     );
 
     const row = result.rows[0];
+    const hasCredentials =
+      Boolean(row?.has_access_token) && Boolean(row?.meta_phone_number_id?.trim());
+
     res.json({
       whatsappNumber: row?.whatsapp_number ?? null,
       metaPhoneNumberId: row?.meta_phone_number_id ?? null,
@@ -185,6 +210,15 @@ router.get('/whatsapp', async (req: AuthRequest, res: Response) => {
       hasAccessToken: Boolean(row?.has_access_token),
       whatsappConnected: Boolean(row?.whatsapp_connected),
       whatsappConnectedAt: row?.whatsapp_connected_at ?? null,
+      credentialsSaved: hasCredentials,
+      lastWhatsappTestAt: row?.last_whatsapp_test_at ?? null,
+      lastWhatsappTestOk: row?.last_whatsapp_test_ok ?? null,
+      lastWhatsappError: row?.last_whatsapp_error ?? null,
+      webhookHealth: {
+        verifyTokenConfigured: Boolean(process.env.META_VERIFY_TOKEN?.trim()),
+        appSecretConfigured: Boolean(process.env.META_APP_SECRET?.trim()),
+        callbackUrl: getWebhookCallbackUrl(),
+      },
     });
   } catch (error) {
     console.error('Get WhatsApp settings failed:', error);
@@ -246,7 +280,7 @@ router.patch('/whatsapp', async (req: AuthRequest, res: Response) => {
           ? null
           : data.metaWabaId.trim() || null;
 
-    const whatsappConnected = Boolean(metaPhoneNumberId && metaAccessToken);
+    const whatsappConnected = false;
 
     if (metaAccessToken && !metaPhoneNumberId) {
       res.status(400).json({
@@ -269,6 +303,9 @@ router.patch('/whatsapp', async (req: AuthRequest, res: Response) => {
              WHEN $5 = false THEN NULL
              ELSE whatsapp_connected_at
            END,
+           last_whatsapp_test_at = NULL,
+           last_whatsapp_test_ok = NULL,
+           last_whatsapp_error = NULL,
            updated_at = NOW()
        WHERE tenant_id = $7`,
       [
@@ -345,20 +382,74 @@ router.post('/whatsapp/test', async (req: AuthRequest, res: Response) => {
 
     const payload = (await response.json()) as { error?: { message?: string } };
     if (!response.ok) {
+      const errorMessage = payload.error?.message ?? 'Failed to send test message';
       console.error('WhatsApp test message failed:', payload);
+
+      await pool.query(
+        `UPDATE broker_settings
+         SET whatsapp_connected = false,
+             whatsapp_connected_at = NULL,
+             last_whatsapp_test_at = NOW(),
+             last_whatsapp_test_ok = false,
+             last_whatsapp_error = $2,
+             updated_at = NOW()
+         WHERE tenant_id = $1`,
+        [tenantId, errorMessage]
+      );
+
       res.status(502).json({
-        error: payload.error?.message ?? 'Failed to send test message',
+        error: whatsappErrorHelp(errorMessage),
       });
       return;
     }
 
+    await pool.query(
+      `UPDATE broker_settings
+       SET whatsapp_connected = true,
+           whatsapp_connected_at = COALESCE(whatsapp_connected_at, NOW()),
+           last_whatsapp_test_at = NOW(),
+           last_whatsapp_test_ok = true,
+           last_whatsapp_error = NULL,
+           updated_at = NOW()
+       WHERE tenant_id = $1`,
+      [tenantId]
+    );
+
     res.json({
       ok: true,
       message: `Test message sent to ${row.whatsapp_number}`,
+      whatsappConnected: true,
     });
   } catch (error) {
     console.error('WhatsApp test message failed:', error);
     res.status(500).json({ error: 'Failed to send test message' });
+  }
+});
+
+router.get('/whatsapp/health', async (req: AuthRequest, res: Response) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  try {
+    const inboundResult = await pool.query<{ last_inbound_at: string | null }>(
+      `SELECT MAX(m.sent_at) AS last_inbound_at
+       FROM messages m
+       WHERE m.tenant_id = $1 AND m.direction = 'inbound'`,
+      [tenantId]
+    );
+
+    res.json({
+      verifyTokenConfigured: Boolean(process.env.META_VERIFY_TOKEN?.trim()),
+      appSecretConfigured: Boolean(process.env.META_APP_SECRET?.trim()),
+      callbackUrl: getWebhookCallbackUrl(),
+      lastInboundMessageAt: inboundResult.rows[0]?.last_inbound_at ?? null,
+    });
+  } catch (error) {
+    console.error('Get WhatsApp health failed:', error);
+    res.status(500).json({ error: 'Failed to load WhatsApp health' });
   }
 });
 

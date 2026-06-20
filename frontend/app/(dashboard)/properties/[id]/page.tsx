@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import {
   PropertyForm,
@@ -56,9 +56,15 @@ function validateForm(values: PropertyFormValues): Partial<Record<keyof Property
 export default function EditPropertyPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const propertyId = typeof params.id === 'string' ? params.id : '';
   const { accessToken, tenant, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<FormTab>('details');
+  const tabParam = searchParams.get('tab');
+  const initialTab: FormTab =
+    tabParam === 'photos' || tabParam === 'documents' || tabParam === 'tags'
+      ? tabParam
+      : 'details';
+  const [activeTab, setActiveTab] = useState<FormTab>(initialTab);
   const [property, setProperty] = useState<Property | null>(null);
   const [photos, setPhotos] = useState<PropertyPhoto[]>([]);
   const [values, setValues] = useState<PropertyFormValues | null>(null);
@@ -69,6 +75,12 @@ export default function EditPropertyPage() {
   const [errors, setErrors] = useState<Partial<Record<keyof PropertyFormValues, string>>>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (tabParam === 'photos' || tabParam === 'documents' || tabParam === 'tags') {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   const load = useCallback(async () => {
     if (!accessToken || !propertyId) return;

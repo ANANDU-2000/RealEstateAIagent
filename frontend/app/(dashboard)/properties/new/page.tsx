@@ -15,6 +15,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { createProperty } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/components/ui/Toast';
 
 function validateForm(values: PropertyFormValues): Partial<Record<keyof PropertyFormValues, string>> {
   const errors: Partial<Record<keyof PropertyFormValues, string>> = {};
@@ -35,6 +36,7 @@ function validateForm(values: PropertyFormValues): Partial<Record<keyof Property
 
 export default function NewPropertyPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const { accessToken, tenant, loading: authLoading } = useAuth();
   const [values, setValues] = useState<PropertyFormValues>(() =>
     emptyPropertyFormValues(tenant?.country)
@@ -69,7 +71,8 @@ export default function NewPropertyPage() {
     setError(null);
     try {
       const result = await createProperty(accessToken, formValuesToPayload(values));
-      router.push(`/properties/${result.property.id}`);
+      toast('Property created. Upload PDF brochures on the Documents tab for AI.');
+      router.push(`/properties/${result.property.id}?tab=documents`);
     } catch (err) {
       setError(
         err && typeof err === 'object' && 'error' in err
