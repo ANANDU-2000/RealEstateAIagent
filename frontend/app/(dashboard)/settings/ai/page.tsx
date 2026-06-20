@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Lock } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { SettingsPageShell } from '@/components/settings/SettingsPageShell';
+import { SettingsSectionCard } from '@/components/settings/SettingsSectionCard';
+import { SettingsToggleRow } from '@/components/settings/SettingsToggleRow';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -45,6 +46,9 @@ const NO_MSG_HOUR_OPTIONS = [
   { value: '21', label: '9:00 PM (default)' },
   { value: '22', label: '10:00 PM' },
 ];
+
+const FIELD_CLASS =
+  'h-10 rounded-[var(--radius-md)] border-border/90 bg-white shadow-[var(--shadow-xs)]';
 
 export default function AiSettingsPage() {
   const { accessToken, tenant } = useAuth();
@@ -150,161 +154,154 @@ export default function AiSettingsPage() {
       loading={loading}
       error={error}
       onRetry={() => void loadSettings()}
-    >
-      <Card className="flex flex-col gap-4">
-        <div>
-          <h3 className="text-base font-semibold text-foreground">Agent identity</h3>
-          <p className="mt-1 text-sm text-muted">Name, tone, and language preferences.</p>
+      footer={
+        <div className="flex flex-col gap-3">
+          {formError && <Alert variant="error">{formError}</Alert>}
+          <Button fullWidth loading={saving} onClick={() => void handleSave()}>
+            Save settings
+          </Button>
         </div>
-
-        <div>
+      }
+    >
+      <SettingsSectionCard
+        title="Agent identity"
+        description="Name, tone, and language preferences."
+      >
+        <div className="flex flex-col gap-4">
           <Input
             label="AI name"
             value={aiName}
             onChange={(e) => setAiName(e.target.value)}
             disabled={!canCustomizeName}
+            className={FIELD_CLASS}
             hint={
               canCustomizeName
                 ? 'This is the name Arjun uses when introducing itself.'
-                : 'Upgrade to Pro to customise your AI agent name.'
+                : 'Upgrade to Pro to customize your AI agent name.'
             }
           />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Select
+              label="Tone"
+              value={aiTone}
+              onChange={(e) => setAiTone(e.target.value as AiSettings['aiTone'])}
+              options={TONE_OPTIONS}
+              className={FIELD_CLASS}
+            />
+            <Select
+              label="Language preference"
+              value={languageDefault}
+              onChange={(e) =>
+                setLanguageDefault(e.target.value as AiSettings['languageDefault'])
+              }
+              options={LANGUAGE_OPTIONS}
+              className={FIELD_CLASS}
+            />
+          </div>
         </div>
+      </SettingsSectionCard>
 
-        <Select
-          label="Tone"
-          value={aiTone}
-          onChange={(e) => setAiTone(e.target.value as AiSettings['aiTone'])}
-          options={TONE_OPTIONS}
-        />
+      <SettingsSectionCard
+        title="Follow-up rules"
+        description="Arjun sends at most 2 follow-ups per lead. This cannot be increased."
+      >
+        <div className="flex flex-col gap-4">
+          <Alert variant="info">
+            Follow-ups help re-engage leads who stop replying. Max 2 per conversation.
+          </Alert>
 
-        <Select
-          label="Language preference"
-          value={languageDefault}
-          onChange={(e) =>
-            setLanguageDefault(e.target.value as AiSettings['languageDefault'])
-          }
-          options={LANGUAGE_OPTIONS}
-        />
-      </Card>
+          <Checkbox
+            label="Follow up unresponsive leads"
+            checked={followupEnabled}
+            onChange={(e) => setFollowupEnabled(e.target.checked)}
+          />
 
-      <Card className="flex flex-col gap-4">
-        <div>
-          <h3 className="text-base font-semibold text-foreground">Follow-up rules</h3>
-          <p className="mt-1 text-sm text-muted">
-            Arjun sends at most 2 follow-ups per lead. This cannot be increased.
+          {followupEnabled && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Select
+                label="Follow-up after silence of"
+                value={aiFollowupGap}
+                onChange={(e) =>
+                  setAiFollowupGap(e.target.value as AiSettings['aiFollowupGap'])
+                }
+                options={FOLLOWUP_GAP_OPTIONS}
+                className={FIELD_CLASS}
+              />
+              <Select
+                label="Number of follow-ups"
+                value={String(aiFollowupCount)}
+                onChange={(e) => setAiFollowupCount(Number(e.target.value))}
+                options={FOLLOWUP_COUNT_OPTIONS}
+                className={FIELD_CLASS}
+              />
+            </div>
+          )}
+        </div>
+      </SettingsSectionCard>
+
+      <SettingsSectionCard title="Messaging limits">
+        <div className="max-w-sm">
+          <Select
+            label="No messages after"
+            value={String(noMsgAfterHour)}
+            onChange={(e) => setNoMsgAfterHour(Number(e.target.value))}
+            options={NO_MSG_HOUR_OPTIONS}
+            className={FIELD_CLASS}
+            hint="Arjun will not send proactive messages or follow-ups after this hour (local time)."
+          />
+        </div>
+      </SettingsSectionCard>
+
+      <SettingsSectionCard title="Conversation behaviour">
+        <div className="divide-y divide-border/60">
+          <SettingsToggleRow
+            label='Ask "call first or direct visit?" before booking'
+            description="Required — helps qualify customers before scheduling."
+            checked
+            disabled
+            locked
+          />
+          <SettingsToggleRow
+            label="Allow Arjun to answer property-specific questions"
+            description="Enabled by default for your workspace."
+            checked={answerPropertyQuestions}
+            disabled
+            onChange={setAnswerPropertyQuestions}
+          />
+          <SettingsToggleRow
+            label="Show property photos automatically"
+            description="Behaviour toggles are managed in a future update."
+            checked={showPhotosAutomatically}
+            disabled
+            onChange={setShowPhotosAutomatically}
+          />
+        </div>
+      </SettingsSectionCard>
+
+      <SettingsSectionCard
+        title="Prompt preview"
+        headerAction={
+          <button
+            type="button"
+            onClick={() => void refreshPreview()}
+            disabled={previewLoading}
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary hover:text-primary-dark disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${previewLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        }
+      >
+        <div className="rounded-[var(--radius-lg)] border border-border/70 bg-surface-2/90 px-4 py-3.5">
+          <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/85">
+            {promptPreview ?? 'Preview will appear after settings load.'}
           </p>
         </div>
-
-        <Alert variant="info">
-          Follow-ups help re-engage leads who stop replying. Max 2 per conversation.
-        </Alert>
-
-        <Checkbox
-          label="Follow up unresponsive leads"
-          checked={followupEnabled}
-          onChange={(e) => setFollowupEnabled(e.target.checked)}
-        />
-
-        {followupEnabled && (
-          <>
-            <Select
-              label="Follow-up after silence of"
-              value={aiFollowupGap}
-              onChange={(e) =>
-                setAiFollowupGap(e.target.value as AiSettings['aiFollowupGap'])
-              }
-              options={FOLLOWUP_GAP_OPTIONS}
-            />
-            <Select
-              label="Number of follow-ups"
-              value={String(aiFollowupCount)}
-              onChange={(e) => setAiFollowupCount(Number(e.target.value))}
-              options={FOLLOWUP_COUNT_OPTIONS}
-            />
-          </>
-        )}
-      </Card>
-
-      <Card className="flex flex-col gap-4">
-        <div>
-          <h3 className="text-base font-semibold text-foreground">Messaging limits</h3>
-        </div>
-
-        <Select
-          label="No messages after"
-          value={String(noMsgAfterHour)}
-          onChange={(e) => setNoMsgAfterHour(Number(e.target.value))}
-          options={NO_MSG_HOUR_OPTIONS}
-        />
-        <p className="text-xs text-muted">
-          Arjun will not send proactive messages or follow-ups after this hour (local time).
-        </p>
-      </Card>
-
-      <Card className="flex flex-col gap-4">
-        <div>
-          <h3 className="text-base font-semibold text-foreground">Conversation behaviour</h3>
-        </div>
-
-        <Checkbox
-          label={
-            <span className="flex items-center gap-1.5">
-              Ask &quot;call first or direct visit?&quot; before booking
-              <Lock className="h-3.5 w-3.5 text-muted" aria-hidden />
-            </span>
-          }
-          checked
-          disabled
-        />
-        <p className="-mt-2 pl-6 text-xs text-muted">
-          Required — helps qualify customers before scheduling.
-        </p>
-
-        <Checkbox
-          label="Allow Arjun to answer property-specific questions"
-          checked={answerPropertyQuestions}
-          onChange={(e) => setAnswerPropertyQuestions(e.target.checked)}
-          disabled
-        />
-        <p className="-mt-2 pl-6 text-xs text-muted">Enabled by default for your workspace.</p>
-
-        <Checkbox
-          label="Show property photos automatically"
-          checked={showPhotosAutomatically}
-          onChange={(e) => setShowPhotosAutomatically(e.target.checked)}
-          disabled
-        />
-        <p className="-mt-2 pl-6 text-xs text-muted">
-          Behaviour toggles are managed in a future update.
-        </p>
-      </Card>
-
-      <Card className="flex flex-col gap-3 bg-surface-2">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-foreground">Prompt preview</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            loading={previewLoading}
-            onClick={() => void refreshPreview()}
-          >
-            Refresh
-          </Button>
-        </div>
-        <p className="text-sm leading-relaxed text-muted">
-          {promptPreview ?? 'Preview will appear after settings load.'}
-        </p>
-        <p className="text-xs text-muted-light">
+        <p className="mt-3 text-[12px] text-muted-light">
           Read-only summary of how Arjun is configured. Full prompt is managed in Super Admin.
         </p>
-      </Card>
-
-      {formError && <Alert variant="error">{formError}</Alert>}
-
-      <Button fullWidth loading={saving} onClick={() => void handleSave()}>
-        Save settings
-      </Button>
+      </SettingsSectionCard>
     </SettingsPageShell>
   );
 }

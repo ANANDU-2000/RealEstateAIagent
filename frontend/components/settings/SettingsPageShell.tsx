@@ -14,6 +14,7 @@ type SettingsPageShellProps = {
   loading: boolean;
   error: string | null;
   onRetry?: () => void;
+  footer?: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -23,6 +24,7 @@ export function SettingsPageShell({
   loading,
   error,
   onRetry,
+  footer,
   children,
 }: SettingsPageShellProps) {
   const router = useRouter();
@@ -36,23 +38,26 @@ export function SettingsPageShell({
 
   if (authLoading || (loading && !error)) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <div>
-          <Skeleton className="h-8 w-48" />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="shrink-0">
+          <Skeleton className="h-8 w-40" />
           <Skeleton className="mt-2 h-4 w-full max-w-md" />
         </div>
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-48 w-full" />
+        <div className="mt-6 flex flex-col gap-4">
+          <Skeleton className="h-44 w-full rounded-[var(--radius-xl)]" />
+          <Skeleton className="h-36 w-full rounded-[var(--radius-xl)]" />
+          <Skeleton className="h-28 w-full rounded-[var(--radius-xl)]" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-foreground">{title}</h2>
-          {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+          <h2 className="text-[24px] font-bold tracking-tight text-foreground">{title}</h2>
+          {description && <p className="mt-1 text-[13px] text-muted">{description}</p>}
         </div>
         <Alert variant="error">{error}</Alert>
         {onRetry && (
@@ -73,12 +78,23 @@ export function SettingsPageShell({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <div>
-        <h2 className="text-[20px] font-bold tracking-tight text-foreground">{title}</h2>
-        {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <header className="shrink-0">
+        <h2 className="text-[24px] font-bold tracking-tight text-foreground">{title}</h2>
+        {description && (
+          <p className="mt-1 text-[13px] leading-snug text-muted">{description}</p>
+        )}
+      </header>
+
+      <div className="mt-5 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-2 lg:max-h-[calc(100vh-11rem)]">
+        {children}
       </div>
-      <div className="flex flex-col gap-5">{children}</div>
+
+      {footer && (
+        <div className="mt-4 shrink-0 border-t border-border/60 pt-4 lg:sticky lg:bottom-0 lg:bg-background/95 lg:backdrop-blur-sm">
+          {footer}
+        </div>
+      )}
     </div>
   );
 }

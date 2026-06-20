@@ -25,6 +25,16 @@ export type ChatMessage = {
   content: string;
 };
 
+export type VisionAttachment = {
+  mimeType: string;
+  base64: string;
+  caption?: string;
+};
+
+export type AIRequestOptions = {
+  visionAttachment?: VisionAttachment;
+};
+
 export type AIResponseResult = {
   text: string;
   model_used: string;
@@ -35,16 +45,27 @@ export type AIResponseResult = {
 
 type AIProvider = 'anthropic' | 'openai';
 
-const PROMPT_PATH = path.resolve(__dirname, '../../../files/ai-system-prompt-v3.md');
+const PROMPT_CANDIDATES = [
+  path.resolve(__dirname, '../prompts/ai-system-prompt-v3.md'),
+  path.resolve(__dirname, '../../../files/ai-system-prompt-v3.md'),
+];
 const AI_TIMEOUT_MS = 8000;
 
 let cachedFileTemplate: string | null = null;
 let cachedDbPrompt: { version: number; content: string } | null = null;
 
+function resolvePromptPath(): string {
+  const found = PROMPT_CANDIDATES.find((candidate) => fs.existsSync(candidate));
+  if (!found) {
+    throw new Error('ai-system-prompt-v3.md not found');
+  }
+  return found;
+}
+
 function loadMasterPromptTemplateFromFile(): string {
   if (cachedFileTemplate) return cachedFileTemplate;
 
-  const content = fs.readFileSync(PROMPT_PATH, 'utf-8');
+  const content = fs.readFileSync(resolvePromptPath(), 'utf-8');
   const marker = '## THE MASTER SYSTEM PROMPT';
   const markerIndex = content.indexOf(marker);
   if (markerIndex === -1) {
@@ -72,7 +93,12 @@ async function loadMasterPromptTemplate(): Promise<string> {
     );
 
     const row = result.rows[0];
-    if (row?.content?.trim()) {
+    const isPlaceholder =
+      !row?.content?.trim() ||
+      row.content.includes('see docs') ||
+      row.content.length < 500;
+
+    if (row?.content?.trim() && !isPlaceholder) {
       if (!cachedDbPrompt || cachedDbPrompt.version !== row.version) {
         cachedDbPrompt = { version: row.version, content: row.content.trim() };
       }
@@ -196,7 +222,8 @@ async function callAnthropic(
 async function callOpenAI(
   systemPrompt: string,
   history: ChatMessage[],
-  fallbackUsed: boolean
+  fallbackUsed: boolean,
+  options?: AIRequestOptions
 ): Promise<AIResponseResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -205,6 +232,43 @@ async function callOpenAI(
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+
+  const vision = options?.visionAttachment;
+  const openAiMessages: Array<Record<string, unknown>> = [
+    { role: 'system', content: systemPrompt },
+  ];
+
+  for (let i = 0; i < history.length; i++) {
+    const message = history[i];
+    const isLastUser =
+      i === history.length - 1 &&
+      message.role === 'user' &&
+      vision?.mimeType.startsWith('image/');
+
+    if (isLastUser && vision) {
+      openAiMessages.push({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text:
+              vision.caption?.trim() ||
+              message.content ||
+              'Customer sent this image about a property enquiry.',
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:${vision.mimeType};base64,${vision.base64}`,
+            },
+          },
+        ],
+      });
+      continue;
+    }
+
+    openAiMessages.push({ role: message.role, content: message.content });
+  }
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -217,10 +281,7 @@ async function callOpenAI(
         model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
         max_tokens: Number(process.env.OPENAI_MAX_TOKENS ?? process.env.ANTHROPIC_MAX_TOKENS ?? 400),
         temperature: Number(process.env.OPENAI_TEMPERATURE ?? process.env.ANTHROPIC_TEMPERATURE ?? 0.3),
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...history.map((m) => ({ role: m.role, content: m.content })),
-        ],
+        messages: openAiMessages,
       }),
       signal: controller.signal,
     });
@@ -294,22 +355,24 @@ export async function getAIResponse(
   systemPrompt: string,
   history: ChatMessage[],
   tenantId: string,
-  conversationId?: string | null
+  conversationId?: string | null,
+  options?: AIRequestOptions
 ): Promise<AIResponseResult> {
   const primary = resolvePrimaryProvider();
   const fallbackEnabled = process.env.OPENAI_FALLBACK_ENABLED !== 'false';
+  const hasVision = Boolean(options?.visionAttachment?.mimeType.startsWith('image/'));
   let result: AIResponseResult;
 
   try {
-    if (primary === 'openai') {
-      result = await callOpenAI(systemPrompt, history, false);
+    if (primary === 'openai' || hasVision) {
+      result = await callOpenAI(systemPrompt, history, false, options);
     } else {
       result = await callAnthropic(systemPrompt, history, false);
     }
   } catch (primaryError) {
     console.error(`${primary} failed, trying fallback:`, primaryError);
 
-    if (!fallbackEnabled) {
+    if (!fallbackEnabled || hasVision) {
       throw primaryError;
     }
 
@@ -317,7 +380,7 @@ export async function getAIResponse(
       if (primary === 'openai') {
         result = await callAnthropic(systemPrompt, history, true);
       } else {
-        result = await callOpenAI(systemPrompt, history, true);
+        result = await callOpenAI(systemPrompt, history, true, options);
       }
     } catch (fallbackError) {
       console.error('AI fallback also failed:', fallbackError);

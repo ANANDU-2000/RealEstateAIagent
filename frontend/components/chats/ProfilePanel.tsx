@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Calendar, Phone, StickyNote, Trash2, X, Zap } from 'lucide-react';
+import { Calendar, Phone, StickyNote, Trash2, User, X, Zap } from 'lucide-react';
 import type { Conversation, Escalation } from '@/lib/api';
 import {
   buildCustomerTags,
@@ -30,9 +30,24 @@ type ProfilePanelProps = {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-0.5 px-4 py-2.5">
-      <span className="text-[11px] text-muted">{label}</span>
+    <div className="flex flex-col gap-0.5 py-2.5">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+        {label}
+      </span>
       <span className="text-[13px] font-medium text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function ProfileEmptyState() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-3/80">
+        <User className="h-6 w-6 text-muted" strokeWidth={1.75} />
+      </div>
+      <p className="max-w-[220px] text-[13px] leading-relaxed text-muted">
+        Select a conversation to view customer profile and lead metadata.
+      </p>
     </div>
   );
 }
@@ -54,9 +69,9 @@ export function ProfilePanel({
     setNotes(conversation?.brokerNotes ?? '');
   }, [conversation?.id, conversation?.brokerNotes]);
 
-  if (loading) {
+  if (loading && conversation) {
     return (
-      <div className="flex h-full w-full flex-col border-l border-border bg-surface p-4">
+      <div className="flex h-full w-full flex-col border-l border-border/80 bg-white p-5 xl:w-[300px] xl:shrink-0">
         <Skeleton className="mb-4 h-12 w-12 rounded-full" />
         <Skeleton className="mb-2 h-5 w-2/3" />
         <Skeleton className="mb-6 h-4 w-1/2" />
@@ -68,8 +83,8 @@ export function ProfilePanel({
 
   if (!conversation) {
     return (
-      <div className="hidden h-full w-[280px] shrink-0 items-center justify-center border-l border-border bg-surface p-6 xl:flex">
-        <p className="text-center text-sm text-muted">Select a conversation to view profile</p>
+      <div className="hidden h-full w-[300px] shrink-0 flex-col border-l border-border/80 bg-white xl:flex">
+        <ProfileEmptyState />
       </div>
     );
   }
@@ -79,9 +94,9 @@ export function ProfilePanel({
   const scoreLabel = getLeadScoreLabel(conversation.leadScore);
 
   return (
-    <div className="animate-slide-in-right flex h-full min-h-0 w-full flex-col overflow-y-auto border-l border-border bg-surface xl:w-[280px] xl:shrink-0">
+    <div className="animate-slide-in-right flex h-full min-h-0 w-full flex-col overflow-y-auto border-l border-border/80 bg-white xl:w-[300px] xl:shrink-0">
       {onClose && (
-        <div className="flex items-center justify-between border-b border-border px-4 py-3 xl:hidden">
+        <div className="flex items-center justify-between border-b border-border/60 px-4 py-3 xl:hidden">
           <h3 className="font-semibold text-foreground">Customer Profile</h3>
           <button
             type="button"
@@ -94,7 +109,7 @@ export function ProfilePanel({
         </div>
       )}
 
-      <div className="space-y-6 p-4">
+      <div className="space-y-5 p-5">
         <section>
           <div className="mb-4 flex items-start gap-3">
             <div
@@ -106,10 +121,10 @@ export function ProfilePanel({
               {getInitials(conversation.customerName, conversation.customerPhone)}
             </div>
             <div className="min-w-0">
-              <h3 className="truncate font-semibold text-foreground">{displayName}</h3>
+              <h3 className="truncate text-[15px] font-bold text-foreground">{displayName}</h3>
               <a
                 href={`tel:${conversation.customerPhone}`}
-                className="text-sm text-primary hover:underline"
+                className="text-[13px] text-primary hover:underline"
               >
                 {conversation.customerPhone}
               </a>
@@ -150,7 +165,7 @@ export function ProfilePanel({
         </section>
 
         <section className="space-y-1 border-t border-border/60 pt-4">
-          <h4 className="px-4 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+          <h4 className="pb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
             Details
           </h4>
           <DetailRow
@@ -181,13 +196,13 @@ export function ProfilePanel({
         </section>
 
         <section className="space-y-2 border-t border-border/60 pt-4">
-          <h4 className="px-4 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+          <h4 className="pb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
             Actions
           </h4>
-          <div className="grid gap-2 px-4">
+          <div className="grid gap-2">
             <a
               href={`tel:${conversation.customerPhone}`}
-              className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-semibold text-foreground hover:bg-surface-2"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] border border-border bg-white px-3 text-[13px] font-semibold text-foreground transition-colors hover:bg-surface-2"
             >
               <Phone className="h-4 w-4" />
               Call Now
@@ -216,7 +231,7 @@ export function ProfilePanel({
         </section>
 
         <section className="space-y-2 border-t border-border/60 pt-4">
-          <div className="flex items-center gap-2 px-4 pb-2 pt-5">
+          <div className="flex items-center gap-2 pb-2">
             <StickyNote className="h-4 w-4 text-muted" />
             <h4 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
               Notes
@@ -233,20 +248,20 @@ export function ProfilePanel({
             }}
             placeholder="Private broker notes…"
             rows={4}
-            className="mx-4 min-h-[120px] w-[calc(100%-2rem)] resize-none rounded-[var(--radius-lg)] border border-border bg-surface-2 px-3.5 py-3 text-[13px] outline-none focus:border-primary focus:shadow-[var(--focus-ring)]"
+            className="min-h-[100px] w-full resize-none rounded-[var(--radius-lg)] border border-border/90 bg-surface-2/80 px-3.5 py-3 text-[13px] outline-none focus:border-primary focus:shadow-[var(--focus-ring)]"
           />
         </section>
 
         {escalations.length > 0 && (
           <section className="space-y-2 border-t border-border/60 pt-4">
-            <h4 className="px-4 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+            <h4 className="pb-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
               Escalations
             </h4>
-            <ul className="space-y-2 px-4">
+            <ul className="space-y-2">
               {escalations.map((esc) => (
                 <li
                   key={esc.id}
-                  className="rounded-[var(--radius-lg)] border border-border bg-surface-2 px-3 py-2.5 text-[13px]"
+                  className="rounded-[var(--radius-lg)] border border-border/80 bg-surface-2/80 px-3 py-2.5 text-[13px]"
                 >
                   <div className="font-medium capitalize text-foreground">
                     {esc.escalationType.replace(/_/g, ' ')}

@@ -12,6 +12,14 @@ export const CHAT_TABS: { id: ChatTab; label: string }[] = [
   { id: 'cold', label: 'Cold' },
 ];
 
+/** Primary filter tabs shown in the Live Chats sidebar (matches product UI). */
+export const CHAT_TABS_PRIMARY: { id: ChatTab; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'ai_active', label: 'AI Active' },
+  { id: 'you', label: 'You' },
+  { id: 'hot', label: 'Hot' },
+];
+
 export function filterConversationsByTab(
   conversations: Conversation[],
   tab: ChatTab

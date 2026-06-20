@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import { pool } from './index';
+import { seedPromptIfNeeded } from './seed-prompt';
 
 dotenv.config();
 
@@ -47,6 +48,8 @@ export async function runMigrations(): Promise<void> {
         console.log(`Applied migration: ${file}`);
       }
     }
+
+    await seedPromptIfNeeded(client);
 
     await client.query('COMMIT');
     console.log('Database migrations completed successfully');

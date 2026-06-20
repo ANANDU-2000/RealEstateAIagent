@@ -5,10 +5,11 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
-    "build": "tsc && node -e \"const fs=require('fs');const p=require('path');fs.copyFileSync('src/db/schema.sql','dist/db/schema.sql');const src='src/db/migrations',dst='dist/db/migrations';if(fs.existsSync(src)){fs.mkdirSync(dst,{recursive:true});for(const f of fs.readdirSync(src))fs.copyFileSync(p.join(src,f),p.join(dst,f));}\"",
+    "build": "tsc && node -e \"const fs=require('fs');const p=require('path');fs.copyFileSync('src/db/schema.sql','dist/db/schema.sql');const src='src/db/migrations',dst='dist/db/migrations';if(fs.existsSync(src)){fs.mkdirSync(dst,{recursive:true});for(const f of fs.readdirSync(src))fs.copyFileSync(p.join(src,f),p.join(dst,f));}const promptSrc='src/prompts',promptDst='dist/prompts';if(fs.existsSync(promptSrc)){fs.mkdirSync(promptDst,{recursive:true});for(const f of fs.readdirSync(promptSrc))fs.copyFileSync(p.join(promptSrc,f),p.join(promptDst,f));}\"",
     "start": "node dist/index.js",
     "migrate": "ts-node src/db/migrate.ts",
     "seed-superadmin": "ts-node src/db/seed-superadmin.ts",
+    "seed-prompt": "ts-node src/db/seed-prompt-standalone.ts",
     "render-build": "npm install --include=dev && npm run build"
   },
   "dependencies": {

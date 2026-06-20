@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
+  MessageSquare,
   Mic,
   Paperclip,
   Phone,
@@ -21,9 +22,7 @@ import { cn } from '@/lib/utils';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { MessageSquare } from 'lucide-react';
 
 type ChatPanelProps = {
   conversation: Conversation | null;
@@ -67,7 +66,7 @@ function MessageBubble({ message }: { message: Message }) {
   if (isSystem) {
     return (
       <div className="flex justify-center py-1">
-        <span className="rounded-full bg-surface-3 px-3 py-1 text-[11px] font-medium text-muted/70">
+        <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] font-medium text-muted shadow-[var(--shadow-xs)]">
           {message.content}
         </span>
       </div>
@@ -77,7 +76,7 @@ function MessageBubble({ message }: { message: Message }) {
   return (
     <div className={cn('flex gap-2 py-1', isCustomer ? 'justify-start' : 'justify-end')}>
       {isCustomer && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-3 text-xs font-bold text-muted">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-muted shadow-[var(--shadow-xs)]">
           C
         </div>
       )}
@@ -92,7 +91,7 @@ function MessageBubble({ message }: { message: Message }) {
           className={cn(
             'px-3.5 py-2.5 text-[13px] shadow-[var(--shadow-xs)]',
             isCustomer &&
-              'max-w-[72%] rounded-[18px] rounded-tl-[6px] border border-border bg-surface text-foreground',
+              'max-w-[72%] rounded-[18px] rounded-tl-[6px] border border-border/60 bg-white text-foreground',
             isAi && 'max-w-[72%] rounded-[18px] rounded-tr-[6px] bg-primary text-white',
             isBroker && 'max-w-[72%] rounded-[18px] rounded-tr-[6px] bg-[#1E293B] text-white'
           )}
@@ -116,6 +115,38 @@ function MessageBubble({ message }: { message: Message }) {
         <span className="mt-1 text-[10px] text-muted/60">
           {formatRelativeTime(message.sentAt)}
         </span>
+      </div>
+    </div>
+  );
+}
+
+function ChatEmptyState() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+        <div className="mb-5 flex h-[72px] w-[72px] items-center justify-center rounded-[20px] border border-border/60 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+          <MessageSquare className="h-8 w-8 text-primary/80" strokeWidth={1.75} />
+        </div>
+        <h3 className="text-[17px] font-bold tracking-tight text-foreground">
+          Select a conversation
+        </h3>
+        <p className="mt-2 max-w-[340px] text-[13px] leading-relaxed text-muted">
+          Choose a customer from the left list to view messages, lead details, and start
+          responding.
+        </p>
+      </div>
+
+      <div className="shrink-0 border-t border-border/60 bg-white/60 px-5 py-2.5 backdrop-blur-sm">
+        <div className="flex items-center justify-between text-[11px] text-muted">
+          <span className="inline-flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-40" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+            </span>
+            System Online
+          </span>
+          <span className="font-medium tabular-nums text-muted/80">PropAgent v3</span>
+        </div>
       </div>
     </div>
   );
@@ -150,12 +181,8 @@ export function ChatPanel({
 
   if (!conversation) {
     return (
-      <div className="flex h-full flex-1 items-center justify-center bg-surface-2/40">
-        <EmptyState
-          icon={MessageSquare}
-          title="Select a conversation"
-          description="Choose a chat from the list to view messages and respond."
-        />
+      <div className="flex h-full min-h-0 flex-1 flex-col bg-surface-2/50">
+        <ChatEmptyState />
       </div>
     );
   }
@@ -175,14 +202,14 @@ export function ChatPanel({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col bg-surface">
-      <div className="shrink-0 border-b border-border/60 bg-surface px-5 py-3.5">
+    <div className="flex h-full min-h-0 flex-1 flex-col bg-surface-2/50">
+      <div className="shrink-0 border-b border-border/60 bg-white px-5 py-3.5">
         <div className="flex items-center gap-3">
           {showBackButton && onBack && (
             <button
               type="button"
               onClick={onBack}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg hover:bg-surface-2 lg:hidden"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg hover:bg-surface-2 xl:hidden"
               aria-label="Back to conversations"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -191,16 +218,16 @@ export function ChatPanel({
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="truncate text-[14px] font-semibold text-foreground">{displayName}</h3>
+              <h3 className="truncate text-[15px] font-bold text-foreground">{displayName}</h3>
               <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
             </div>
-            <p className="text-sm text-muted">{conversation.customerPhone}</p>
+            <p className="text-[13px] text-muted">{conversation.customerPhone}</p>
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
             <a
               href={`tel:${conversation.customerPhone}`}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-muted hover:bg-surface-2"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
               aria-label="Call customer"
             >
               <Phone className="h-4 w-4" />
@@ -209,8 +236,8 @@ export function ChatPanel({
               <button
                 type="button"
                 onClick={onOpenProfile}
-                className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] text-muted hover:bg-surface-2"
-                aria-label="Toggle profile"
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-foreground xl:hidden"
+                aria-label="Open profile"
               >
                 <User className="h-4 w-4" />
               </button>
@@ -222,9 +249,7 @@ export function ChatPanel({
           <Alert variant="warning" className="mt-3">
             <div className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
-              <span>
-                Ultra Hot — owner notified. AI paused.
-              </span>
+              <span>Ultra Hot — owner notified. AI paused.</span>
             </div>
           </Alert>
         )}
@@ -236,7 +261,7 @@ export function ChatPanel({
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-surface-2/40 px-5 py-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -244,15 +269,11 @@ export function ChatPanel({
             ))}
           </div>
         ) : error ? (
-          <div className="py-8 text-center">
+          <div className="flex flex-col items-center py-12 text-center">
             <p className="mb-3 text-sm text-danger">{error}</p>
-            <button
-              type="button"
-              onClick={onRetry}
-              className="text-sm font-semibold text-primary hover:underline"
-            >
+            <Button size="sm" variant="outline" onClick={onRetry}>
               Retry
-            </button>
+            </Button>
           </div>
         ) : messages.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted">No messages yet.</p>
@@ -260,7 +281,7 @@ export function ChatPanel({
           groups.map((group) => (
             <div key={group.dateLabel}>
               <div className="my-4 flex justify-center">
-                <span className="rounded-full bg-surface-2 px-3 py-1 text-[11px] font-medium text-muted/70">
+                <span className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium text-muted shadow-[var(--shadow-xs)]">
                   {group.dateLabel}
                 </span>
               </div>
@@ -273,14 +294,14 @@ export function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      <div className="shrink-0 border-t border-border/60 bg-surface px-4 py-3">
+      <div className="shrink-0 border-t border-border/60 bg-white px-4 py-3">
         {locked ? (
           <Alert variant="warning">
             AI paused — owner has been notified. Messaging is disabled.
           </Alert>
         ) : !humanMode ? (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-foreground">
+            <p className="text-[13px] text-foreground">
               <span className="font-semibold text-primary">{aiName}</span> is handling this chat
             </p>
             <Button onClick={onTakeOver} size="sm">
@@ -309,7 +330,7 @@ export function ChatPanel({
                 }}
                 placeholder="Type a message..."
                 rows={1}
-                className="max-h-[120px] min-h-[40px] flex-1 resize-none rounded-[var(--radius-lg)] border border-border bg-surface-2 px-3.5 py-2.5 text-[13px] outline-none focus:border-primary focus:shadow-[var(--focus-ring)]"
+                className="max-h-[120px] min-h-[40px] flex-1 resize-none rounded-[var(--radius-lg)] border border-border/90 bg-surface-2 px-3.5 py-2.5 text-[13px] outline-none focus:border-primary focus:shadow-[var(--focus-ring)]"
               />
               <Button
                 onClick={handleSend}

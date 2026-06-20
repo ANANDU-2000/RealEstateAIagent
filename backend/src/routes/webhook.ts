@@ -2,12 +2,13 @@ import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
 import { pool } from '../db';
 import { getIo } from '../realtime/io-holder';
-import { sendWhatsAppMessage } from '../services/whatsapp.service';
+import { sendWhatsAppMessage, downloadWhatsAppMedia } from '../services/whatsapp.service';
 import {
   buildSystemPrompt,
   getAIResponse,
   type ChatMessage,
   type BuildSystemPromptParams,
+  type VisionAttachment,
 } from '../services/ai.service';
 
 const router = Router();
@@ -191,18 +192,20 @@ async function storeInboundMessage(params: {
   content: string;
   mediaType: string;
   whatsappMsgId: string;
+  mediaUrl?: string | null;
 }): Promise<{ id: string } | null> {
   try {
     const result = await pool.query<{ id: string }>(
       `INSERT INTO messages
-         (conversation_id, tenant_id, direction, sender, content, media_type, whatsapp_msg_id)
-       VALUES ($1, $2, 'inbound', 'customer', $3, $4, $5)
+         (conversation_id, tenant_id, direction, sender, content, media_type, media_url, whatsapp_msg_id)
+       VALUES ($1, $2, 'inbound', 'customer', $3, $4, $5, $6)
        RETURNING id`,
       [
         params.conversationId,
         params.tenantId,
         params.content,
         params.mediaType,
+        params.mediaUrl ?? null,
         params.whatsappMsgId,
       ]
     );
@@ -411,7 +414,11 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
     const from: string = message.from;
     const messageId: string = message.id;
     const messageType: string = message.type ?? 'text';
-    const text: string = message.text?.body ?? '';
+    const text: string =
+      message.text?.body ??
+      message.image?.caption ??
+      message.document?.caption ??
+      '';
     const phoneNumberId: string = value.metadata?.phone_number_id;
     const customerName: string | null = value.contacts?.[0]?.profile?.name ?? null;
 
@@ -459,12 +466,47 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
       return;
     }
 
-    const inboundContent =
+    let inboundContent =
       messageType === 'audio'
         ? '[voice note]'
-        : messageType === 'image'
-          ? text || '[image received]'
-          : text;
+        : text;
+
+    let visionAttachment: VisionAttachment | undefined;
+
+    if (messageType === 'image' || messageType === 'document') {
+      const mediaId: string | undefined = message.image?.id ?? message.document?.id;
+      const filename: string = message.document?.filename ?? 'document';
+
+      if (mediaId) {
+        try {
+          const media = await downloadWhatsAppMedia(mediaId, tenant.meta_access_token);
+
+          if (media.mimeType.startsWith('image/')) {
+            visionAttachment = {
+              mimeType: media.mimeType,
+              base64: media.buffer.toString('base64'),
+              caption: text || undefined,
+            };
+            inboundContent = text || '[image received]';
+          } else {
+            inboundContent = text
+              ? `[document: ${filename}] ${text}`
+              : `[document received: ${filename}]`;
+          }
+        } catch (mediaError) {
+          console.error('WhatsApp media download failed:', mediaError);
+          inboundContent =
+            messageType === 'image'
+              ? text || '[image received — download failed]'
+              : text || `[document received: ${filename}]`;
+        }
+      } else {
+        inboundContent =
+          messageType === 'image'
+            ? text || '[image received]'
+            : text || `[document received: ${filename}]`;
+      }
+    }
 
     const stored = await storeInboundMessage({
       conversationId: conversation.id,
@@ -532,7 +574,7 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
       return;
     }
 
-    if (messageType !== 'text' && messageType !== 'image') {
+    if (messageType !== 'text' && messageType !== 'image' && messageType !== 'document') {
       return;
     }
 
@@ -570,7 +612,8 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
       systemPrompt,
       history,
       tenant.tenant_id,
-      conversation.id
+      conversation.id,
+      visionAttachment ? { visionAttachment } : undefined
     );
 
     const escalationType = detectEscalationType(aiResult.text);

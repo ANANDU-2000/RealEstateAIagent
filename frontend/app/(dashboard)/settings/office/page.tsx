@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { SettingsPageShell } from '@/components/settings/SettingsPageShell';
+import { SettingsSectionCard } from '@/components/settings/SettingsSectionCard';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -25,6 +25,15 @@ const CUSTOMER_REMINDER_OPTIONS = [
   { value: '2hr', label: '2 hours before' },
   { value: '1day', label: '1 day before' },
 ];
+
+const FIELD_CLASS =
+  'h-10 rounded-[var(--radius-md)] border-border/90 bg-white shadow-[var(--shadow-xs)]';
+
+const TEXTAREA_CLASS = cn(
+  'min-h-[96px] w-full resize-y rounded-[var(--radius-md)] border border-border/90 bg-white px-3.5 py-2.5 text-sm text-foreground shadow-[var(--shadow-xs)]',
+  'placeholder:text-muted-light outline-none transition-all duration-150',
+  'hover:border-border-dark focus:border-primary focus:shadow-[var(--focus-ring)]'
+);
 
 export default function OfficeSettingsPage() {
   const { accessToken } = useAuth();
@@ -107,6 +116,14 @@ export default function OfficeSettingsPage() {
       loading={loading}
       error={error}
       onRetry={() => void loadSettings()}
+      footer={
+        <div className="flex flex-col gap-3">
+          {formError && <Alert variant="error">{formError}</Alert>}
+          <Button fullWidth loading={saving} onClick={() => void handleSave()}>
+            Save settings
+          </Button>
+        </div>
+      }
     >
       {showAddressWarning && (
         <Alert variant="warning">
@@ -114,102 +131,98 @@ export default function OfficeSettingsPage() {
         </Alert>
       )}
 
-      <Card className="flex flex-col gap-4">
-        <div>
-          <h3 className="text-base font-semibold text-foreground">Office address</h3>
-          <p className="mt-1 text-sm text-muted">
-            Shared with customers who request an office visit.
-          </p>
-        </div>
+      <SettingsSectionCard
+        title="Office address"
+        description="Shared with customers who request an office visit."
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="office-address"
+              className="text-[13px] font-medium leading-none text-foreground"
+            >
+              Full office address
+            </label>
+            <textarea
+              id="office-address"
+              rows={3}
+              className={TEXTAREA_CLASS}
+              placeholder="e.g. SCO 154, Sector 17-C, Chandigarh 160017"
+              value={officeAddress}
+              onChange={(e) => setOfficeAddress(e.target.value)}
+            />
+          </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="office-address" className="text-sm font-medium text-foreground">
-            Full office address
-          </label>
-          <textarea
-            id="office-address"
-            rows={4}
-            className={cn(
-              'w-full rounded-lg border bg-surface px-3 py-2.5 text-sm text-foreground',
-              'placeholder:text-muted-light outline-none transition-shadow resize-y min-h-[100px]',
-              'focus:border-primary focus:shadow-[var(--focus-ring)]'
-            )}
-            placeholder="e.g. SCO 154, Sector 17-C, Chandigarh 160017"
-            value={officeAddress}
-            onChange={(e) => setOfficeAddress(e.target.value)}
+          <Input
+            label="City"
+            placeholder="Chandigarh"
+            value={officeCity}
+            onChange={(e) => setOfficeCity(e.target.value)}
+            className={FIELD_CLASS}
+          />
+
+          <Input
+            label="Google Maps link"
+            type="url"
+            placeholder="https://maps.google.com/..."
+            value={officeMapsLink}
+            onChange={(e) => setOfficeMapsLink(e.target.value)}
+            className={FIELD_CLASS}
+            hint="Optional — helps customers navigate to your office."
           />
         </div>
+      </SettingsSectionCard>
 
-        <Input
-          label="City"
-          placeholder="Chandigarh"
-          value={officeCity}
-          onChange={(e) => setOfficeCity(e.target.value)}
-        />
-
-        <Input
-          label="Google Maps link"
-          type="url"
-          placeholder="https://maps.google.com/..."
-          value={officeMapsLink}
-          onChange={(e) => setOfficeMapsLink(e.target.value)}
-          hint="Optional — helps customers navigate to your office."
-        />
-      </Card>
-
-      <Card className="flex flex-col gap-4">
-        <div>
-          <h3 className="text-base font-semibold text-foreground">Pre-visit reminders</h3>
-          <p className="mt-1 text-sm text-muted">
-            Get notified before a customer visits so you can call to confirm.
-          </p>
-        </div>
-
-        <Checkbox
-          label="Remind me before customer visits"
-          checked={reminderEnabled}
-          onChange={(e) => setReminderEnabled(e.target.checked)}
-        />
-
-        {reminderEnabled && (
-          <Select
-            label="Remind me how early?"
-            value={reminderBeforeVisit}
-            onChange={(e) =>
-              setReminderBeforeVisit(e.target.value as OfficeSettings['reminderBeforeVisit'])
-            }
-            options={REMINDER_OPTIONS}
-          />
-        )}
-
-        <div className="border-t border-border pt-4">
+      <SettingsSectionCard
+        title="Pre-visit reminders"
+        description="Get notified before a customer visits so you can call to confirm."
+      >
+        <div className="flex flex-col gap-4">
           <Checkbox
-            label="Send customer a WhatsApp reminder before their visit"
-            checked={customerReminder}
-            onChange={(e) => setCustomerReminder(e.target.checked)}
+            label="Remind me before customer visits"
+            checked={reminderEnabled}
+            onChange={(e) => setReminderEnabled(e.target.checked)}
           />
-          {customerReminder && (
-            <div className="mt-3 pl-6">
+
+          {reminderEnabled && (
+            <div className="max-w-sm">
               <Select
-                label="How early to remind customer?"
-                value={customerReminderTime}
+                label="Remind me how early?"
+                value={reminderBeforeVisit}
                 onChange={(e) =>
-                  setCustomerReminderTime(
-                    e.target.value as OfficeSettings['customerReminderTime']
-                  )
+                  setReminderBeforeVisit(e.target.value as OfficeSettings['reminderBeforeVisit'])
                 }
-                options={CUSTOMER_REMINDER_OPTIONS}
+                options={REMINDER_OPTIONS}
+                className={FIELD_CLASS}
               />
             </div>
           )}
+
+          <div className="border-t border-border/60 pt-4">
+            <Checkbox
+              label="Send customer a WhatsApp reminder before their visit"
+              checked={customerReminder}
+              onChange={(e) => setCustomerReminder(e.target.checked)}
+            />
+
+            {customerReminder && (
+              <div className="mt-3 max-w-sm pl-6">
+                <Select
+                  label="How early to remind customer?"
+                  value={customerReminderTime}
+                  onChange={(e) =>
+                    setCustomerReminderTime(
+                      e.target.value as OfficeSettings['customerReminderTime']
+                    )
+                  }
+                  options={CUSTOMER_REMINDER_OPTIONS}
+                  className={FIELD_CLASS}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      </Card>
-
-      {formError && <Alert variant="error">{formError}</Alert>}
-
-      <Button fullWidth loading={saving} onClick={() => void handleSave()}>
-        Save settings
-      </Button>
+      </SettingsSectionCard>
     </SettingsPageShell>
   );
 }

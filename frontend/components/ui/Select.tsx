@@ -5,15 +5,16 @@ type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
   error?: string;
   hint?: string;
   options: { value: string; label: string }[];
+  labelClassName?: string;
 };
 
-export function Select({ label, error, hint, options, className, id, ...props }: SelectProps) {
+export function Select({ label, error, hint, options, className, id, labelClassName, ...props }: SelectProps) {
   const selectId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
 
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={selectId} className="text-[13px] font-medium text-foreground leading-none">
+        <label htmlFor={selectId} className={cn('text-[13px] font-medium text-foreground leading-none', labelClassName)}>
           {label}
         </label>
       )}

@@ -384,11 +384,13 @@ export default function ChatsPage() {
   const showProfile = mobileView === 'profile';
 
   return (
-    <div className="-m-6 flex h-[calc(100vh)] min-h-0 overflow-hidden">
+    <div className="-mx-8 -mt-7 -mb-28 flex h-[calc(100dvh-7rem)] min-h-0 overflow-hidden lg:-mb-8 lg:h-[calc(100dvh-3.5rem)]">
+      {/* Column 1 — conversation list */}
       <div
-        className={`h-full w-full shrink-0 lg:w-[300px] ${
-          showList ? 'flex' : 'hidden lg:flex'
-        }`}
+        className={cn(
+          'h-full min-h-0 shrink-0',
+          showList ? 'flex w-full lg:w-[300px]' : 'hidden lg:flex lg:w-[300px]'
+        )}
       >
         <ConversationList
           conversations={filteredConversations}
@@ -405,10 +407,12 @@ export default function ChatsPage() {
         />
       </div>
 
+      {/* Column 2 — message thread */}
       <div
-        className={`min-h-0 min-w-0 flex-1 ${
-          showChat ? 'flex' : 'hidden lg:flex'
-        }`}
+        className={cn(
+          'min-h-0 min-w-0 flex-1',
+          showChat ? 'flex' : 'hidden xl:flex'
+        )}
       >
         <ChatPanel
           conversation={selectedConversation}
@@ -444,9 +448,10 @@ export default function ChatsPage() {
         />
       )}
 
+      {/* Column 3 — lead profile */}
       <div
         className={cn(
-          'fixed inset-0 z-20 bg-surface xl:static xl:z-auto',
+          'fixed inset-0 z-20 bg-white xl:static xl:z-auto xl:flex',
           showProfile ? 'flex' : 'hidden',
           showProfileDesktop ? 'xl:flex' : 'xl:hidden'
         )}

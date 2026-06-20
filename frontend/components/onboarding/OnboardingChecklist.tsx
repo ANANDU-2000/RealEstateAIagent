@@ -1,21 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  ArrowRight,
   Building2,
   Check,
-  ChevronRight,
-  Circle,
+  CircleHelp,
   Clock,
-  Home,
   MapPin,
   MessageSquare,
-  UserCheck,
+  Store,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Alert } from '@/components/ui/Alert';
 import { WhatsAppSetupDrawer } from '@/components/onboarding/WhatsAppSetupDrawer';
@@ -23,15 +22,56 @@ import { getOnboardingStatus, type OnboardingStatus } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
-type ChecklistItem = {
-  id: keyof OnboardingStatus['steps'];
+type StepId = keyof OnboardingStatus['steps'];
+
+type ChecklistStep = {
+  id: StepId;
   label: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  done: boolean;
+  doneDescription: string;
+  pendingDescription: string;
   action?: 'drawer' | 'link';
   href?: string;
 };
+
+const STEPS: ChecklistStep[] = [
+  {
+    id: 'accountCreated',
+    label: 'Account created',
+    doneDescription: 'Profile established successfully.',
+    pendingDescription: 'Complete your broker registration.',
+  },
+  {
+    id: 'whatsappConnected',
+    label: 'Connect WhatsApp number',
+    doneDescription: 'Buyers can message your AI agent.',
+    pendingDescription: 'Link the number leads will message on WhatsApp.',
+    action: 'drawer',
+  },
+  {
+    id: 'hasProperty',
+    label: 'Add your first property',
+    doneDescription: 'Listing enables automated lead management.',
+    pendingDescription: 'Listing a property enables automated lead management.',
+    action: 'link',
+    href: '/properties/new',
+  },
+  {
+    id: 'hasAvailability',
+    label: 'Set your availability',
+    doneDescription: 'Visit slots are ready for bookings.',
+    pendingDescription: 'Define your working hours for tour bookings.',
+    action: 'link',
+    href: '/settings/availability',
+  },
+  {
+    id: 'hasOfficeAddress',
+    label: 'Add office address',
+    doneDescription: 'Office visits can be scheduled.',
+    pendingDescription: 'Share your office location for in-person meetings.',
+    action: 'link',
+    href: '/settings/office',
+  },
+];
 
 export function OnboardingChecklist() {
   const router = useRouter();
@@ -68,11 +108,69 @@ export function OnboardingChecklist() {
     void loadStatus();
   }, [accessToken, authLoading, loadStatus, router]);
 
+  const firstIncompleteIndex = useMemo(() => {
+    if (!status) return 0;
+    return STEPS.findIndex((step) => !status.steps[step.id]);
+  }, [status]);
+
+  const activeStep = firstIncompleteIndex >= 0 ? STEPS[firstIncompleteIndex] : null;
+
+  const ctaConfig = useMemo(() => {
+    if (!activeStep) {
+      return {
+        label: 'Open dashboard',
+        icon: <ArrowRight className="h-4 w-4" />,
+        onClick: () => router.push('/chats'),
+      };
+    }
+    switch (activeStep.id) {
+      case 'whatsappConnected':
+        return {
+          label: 'Connect WhatsApp',
+          icon: <MessageSquare className="h-4 w-4" />,
+          onClick: () => setDrawerOpen(true),
+        };
+      case 'hasProperty':
+        return {
+          label: 'Add your first property',
+          icon: <Store className="h-4 w-4" />,
+          onClick: () => router.push('/properties/new'),
+        };
+      case 'hasAvailability':
+        return {
+          label: 'Set your availability',
+          icon: <Clock className="h-4 w-4" />,
+          onClick: () => router.push('/settings/availability'),
+        };
+      case 'hasOfficeAddress':
+        return {
+          label: 'Add office address',
+          icon: <MapPin className="h-4 w-4" />,
+          onClick: () => router.push('/settings/office'),
+        };
+      default:
+        return {
+          label: 'Continue setup',
+          icon: <ArrowRight className="h-4 w-4" />,
+          onClick: () => undefined,
+        };
+    }
+  }, [activeStep, router]);
+
+  function handleStepClick(step: ChecklistStep, index: number) {
+    if (!status || status.steps[step.id]) return;
+    if (index !== firstIncompleteIndex) return;
+    if (step.action === 'drawer') setDrawerOpen(true);
+    else if (step.href) router.push(step.href);
+  }
+
   if (authLoading || (loading && !status)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-6">
-        <div className="w-full max-w-[560px]">
-          <Skeleton className="mb-4 h-64 w-full rounded-[var(--radius-2xl)]" />
+      <div className="flex h-screen flex-col overflow-hidden bg-background">
+        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-8">
+          <Skeleton className="mb-3 h-8 w-48" />
+          <Skeleton className="mb-8 h-4 w-72" />
+          <Skeleton className="h-[320px] w-full rounded-[var(--radius-2xl)]" />
         </div>
       </div>
     );
@@ -80,8 +178,8 @@ export function OnboardingChecklist() {
 
   if (error && !status) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-6">
-        <div className="flex w-full max-w-[560px] flex-col gap-4">
+      <div className="flex h-screen items-center justify-center overflow-hidden bg-background p-6">
+        <div className="flex w-full max-w-md flex-col gap-4">
           <Alert variant="error">{error}</Alert>
           <Button onClick={() => void loadStatus()}>Try again</Button>
         </div>
@@ -91,167 +189,142 @@ export function OnboardingChecklist() {
 
   if (!status) return null;
 
-  const items: ChecklistItem[] = [
-    {
-      id: 'accountCreated',
-      label: 'Account created',
-      description: 'Your PropAgent workspace is ready',
-      icon: UserCheck,
-      done: status.steps.accountCreated,
-    },
-    {
-      id: 'whatsappConnected',
-      label: 'Connect WhatsApp number',
-      description: status.steps.whatsappConnected
-        ? 'WhatsApp is connected'
-        : 'Link the number buyers will message',
-      icon: MessageSquare,
-      done: status.steps.whatsappConnected,
-      action: 'drawer',
-    },
-    {
-      id: 'hasProperty',
-      label: 'Add your first property',
-      description: status.steps.hasProperty
-        ? 'At least one listing added'
-        : 'Arjun needs listings to recommend',
-      icon: Home,
-      done: status.steps.hasProperty,
-      action: 'link',
-      href: '/properties/new',
-    },
-    {
-      id: 'hasAvailability',
-      label: 'Set your availability',
-      description: status.steps.hasAvailability
-        ? 'Visit slots configured'
-        : 'When can buyers book site visits?',
-      icon: Clock,
-      done: status.steps.hasAvailability,
-      action: 'link',
-      href: '/settings/availability',
-    },
-    {
-      id: 'hasOfficeAddress',
-      label: 'Add office address',
-      description: status.steps.hasOfficeAddress
-        ? 'Office location saved'
-        : 'For office visit bookings',
-      icon: MapPin,
-      done: status.steps.hasOfficeAddress,
-      action: 'link',
-      href: '/settings/office',
-    },
-  ];
-
-  const progressPct = Math.round(
-    (status.quickStepsCompleted / status.quickStepsTotal) * 100
-  );
-  const firstIncompleteIndex = items.findIndex((item) => !item.done);
-
-  function handleItemClick(item: ChecklistItem) {
-    if (item.done) return;
-    if (item.action === 'drawer') {
-      setDrawerOpen(true);
-    } else if (item.href) {
-      router.push(item.href);
-    }
-  }
+  const firstName = status.ownerName.trim().split(/\s+/)[0] ?? 'there';
 
   return (
     <>
-      <div className="flex min-h-screen items-center justify-center bg-background p-6">
-        <Card
-          padding="lg"
-          className="w-full max-w-[560px] rounded-[var(--radius-2xl)] p-8 shadow-[var(--shadow-lg)]"
-        >
-          <div className="mb-6 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Building2 className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-[15px] font-semibold text-foreground">PropAgent</span>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <h1 className="text-[22px] font-bold tracking-tight text-foreground">
-              Welcome, {status.ownerName.split(' ')[0]}!
-            </h1>
-            <p className="text-[14px] text-muted">
-              {status.aiName} is ready to go. Just 4 quick steps.
-            </p>
-          </div>
-
-          <div className="mt-6 flex flex-col gap-2">
-            <div className="flex items-center justify-between text-[12px] text-muted">
-              <span>Setup progress</span>
-              <span>
-                {status.quickStepsCompleted} of {status.quickStepsTotal} steps
-              </span>
-            </div>
-            <div className="h-1 w-full overflow-hidden rounded-full bg-surface-3">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-col">
-            {items.map((item, index) => {
-              const Icon = item.icon;
-              const isClickable = !item.done && item.action;
-              const isCurrent = !item.done && index === firstIncompleteIndex;
-
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  disabled={!isClickable}
-                  onClick={() => handleItemClick(item)}
-                  className={cn(
-                    'flex w-full items-start gap-4 border-b border-border/60 py-4 text-left last:border-0',
-                    isClickable && 'cursor-pointer hover:bg-surface-2/60',
-                    !isClickable && item.done && 'cursor-default',
-                    !isClickable && !item.done && 'cursor-default opacity-60'
-                  )}
-                >
-                  {item.done ? (
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success text-white">
-                      <Check className="h-3.5 w-3.5" />
-                    </div>
-                  ) : isCurrent ? (
-                    <div className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-primary ring-offset-2">
-                      <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-                    </div>
-                  ) : (
-                    <Circle className="mt-0.5 h-6 w-6 shrink-0 text-surface-3" strokeWidth={1.5} />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 shrink-0 text-muted" />
-                      <span className="text-[14px] font-semibold text-foreground">{item.label}</span>
-                    </div>
-                    <p className="mt-0.5 text-[13px] text-muted">{item.description}</p>
-                  </div>
-                  {isClickable && <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted" />}
-                </button>
-              );
-            })}
-          </div>
-
-          <p className="mt-6 text-center text-[12px] leading-relaxed text-muted">
-            Test {status.aiName}: text your WhatsApp number &quot;Hi&quot; once WhatsApp is connected.
-          </p>
-
-          <div className="mt-6 border-t border-border/60 pt-5 text-center">
-            <Link
-              href="/chats"
-              className="text-[12px] text-muted underline hover:text-foreground"
+      <div className="flex h-screen flex-col overflow-hidden bg-background">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/60 px-8 lg:px-12">
+          <Link href="/" className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-sidebar" />
+            <span className="text-base font-bold tracking-tight text-sidebar">PropAgent</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <a
+              href="mailto:support@propagent.in"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted transition-colors hover:border-border-dark hover:text-foreground"
+              aria-label="Help"
             >
-              Skip setup — go to dashboard
+              <CircleHelp className="h-4 w-4" />
+            </a>
+            <Link
+              href="/settings"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted transition-colors hover:border-border-dark hover:text-foreground"
+              aria-label="Profile settings"
+            >
+              <User className="h-4 w-4" />
             </Link>
           </div>
-        </Card>
+        </header>
+
+        <main className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-6 lg:px-8">
+          <div className="flex w-full max-w-xl flex-col">
+            <div className="mb-5 text-center">
+              <h1 className="text-[32px] font-bold leading-tight tracking-tight text-sidebar lg:text-[36px]">
+                Welcome, {firstName}
+              </h1>
+              <p className="mt-2 text-[15px] text-muted">
+                Let&apos;s get your professional workspace ready in under 2 minutes.
+              </p>
+            </div>
+
+            <div className="mb-4 h-0.5 w-full rounded-full bg-sidebar" aria-hidden />
+
+            <div className="overflow-hidden rounded-[var(--radius-2xl)] border border-border bg-surface shadow-[var(--shadow-lg)]">
+              {STEPS.map((step, index) => {
+                const done = status.steps[step.id];
+                const isActive = !done && index === firstIncompleteIndex;
+                const isLocked = !done && index > firstIncompleteIndex;
+                const clickable = isActive && Boolean(step.action);
+
+                return (
+                  <button
+                    key={step.id}
+                    type="button"
+                    disabled={!clickable}
+                    onClick={() => handleStepClick(step, index)}
+                    className={cn(
+                      'flex w-full items-center gap-4 border-b border-border/70 px-5 py-4 text-left last:border-b-0',
+                      isActive && 'bg-primary-muted',
+                      clickable && 'cursor-pointer hover:bg-primary-light/80',
+                      !clickable && 'cursor-default'
+                    )}
+                  >
+                    {done ? (
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-success-light">
+                        <Check className="h-4 w-4 text-success" strokeWidth={2.5} />
+                      </div>
+                    ) : isActive ? (
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar">
+                        <span className="h-2 w-2 rounded-full bg-white" />
+                      </div>
+                    ) : (
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-surface-2">
+                        <span className="text-xs font-semibold text-muted-light">{index + 1}</span>
+                      </div>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={cn(
+                          'text-[15px] font-semibold leading-snug',
+                          done && 'text-foreground',
+                          isActive && 'text-sidebar',
+                          isLocked && 'text-muted-light'
+                        )}
+                      >
+                        {step.label}
+                      </p>
+                      <p
+                        className={cn(
+                          'mt-0.5 text-[13px] leading-snug',
+                          done && 'text-muted',
+                          isActive && 'text-sidebar/70',
+                          isLocked && 'text-muted-light'
+                        )}
+                      >
+                        {done ? step.doneDescription : step.pendingDescription}
+                      </p>
+                    </div>
+
+                    {isActive && (
+                      <ArrowRight className="h-4 w-4 shrink-0 text-sidebar" aria-hidden />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <Button
+              type="button"
+              size="lg"
+              fullWidth
+              className="mt-5 h-12 bg-gradient-to-b from-primary to-primary-dark shadow-[0_8px_24px_rgba(37,99,235,0.28)] hover:from-primary-dark hover:to-primary-dark"
+              iconLeft={ctaConfig.icon}
+              onClick={ctaConfig.onClick}
+            >
+              {ctaConfig.label}
+            </Button>
+          </div>
+        </main>
+
+        <footer className="flex h-12 shrink-0 items-center justify-between border-t border-border/60 px-8 text-[11px] text-muted lg:px-12">
+          <span>© {new Date().getFullYear()} PropAgent</span>
+          <div className="flex items-center gap-5">
+            <a href="mailto:support@propagent.in" className="hover:text-foreground hover:underline">
+              Support
+            </a>
+            <Link href="/privacy" className="hover:text-foreground hover:underline">
+              Privacy policy
+            </Link>
+            <Link
+              href="/chats"
+              className="font-semibold text-sidebar hover:underline"
+            >
+              Skip for now
+            </Link>
+          </div>
+        </footer>
       </div>
 
       <WhatsAppSetupDrawer

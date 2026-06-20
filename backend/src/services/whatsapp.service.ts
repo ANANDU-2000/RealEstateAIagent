@@ -11,6 +11,41 @@ export type SendWhatsAppResult = {
   error?: string;
 };
 
+export type WhatsAppMedia = {
+  buffer: Buffer;
+  mimeType: string;
+};
+
+export async function downloadWhatsAppMedia(
+  mediaId: string,
+  accessToken: string
+): Promise<WhatsAppMedia> {
+  const metaRes = await fetch(`https://graph.facebook.com/v20.0/${mediaId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  const meta = (await metaRes.json()) as {
+    url?: string;
+    mime_type?: string;
+    error?: { message: string };
+  };
+
+  if (!metaRes.ok || !meta.url) {
+    throw new Error(meta.error?.message ?? `WhatsApp media lookup failed (${metaRes.status})`);
+  }
+
+  const mediaRes = await fetch(meta.url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!mediaRes.ok) {
+    throw new Error(`WhatsApp media download failed (${mediaRes.status})`);
+  }
+
+  const buffer = Buffer.from(await mediaRes.arrayBuffer());
+  return { buffer, mimeType: meta.mime_type ?? 'application/octet-stream' };
+}
+
 export async function sendWhatsAppMessage(params: SendWhatsAppParams): Promise<SendWhatsAppResult> {
   const { phoneNumberId, accessToken, to, text } = params;
   const phone = to.replace(/\D/g, '');

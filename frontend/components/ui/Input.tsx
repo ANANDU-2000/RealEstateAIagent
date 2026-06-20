@@ -6,15 +6,16 @@ type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
   hint?: string;
   prefix?: React.ReactNode;
   suffix?: React.ReactNode;
+  labelClassName?: string;
 };
 
-export function Input({ label, error, hint, prefix, suffix, className, id, ...props }: InputProps) {
+export function Input({ label, error, hint, prefix, suffix, className, id, labelClassName, ...props }: InputProps) {
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
 
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={inputId} className="text-[13px] font-medium text-foreground leading-none">
+        <label htmlFor={inputId} className={cn('text-[13px] font-medium text-foreground leading-none', labelClassName)}>
           {label}
         </label>
       )}
