@@ -231,21 +231,21 @@ router.patch('/whatsapp', async (req: AuthRequest, res: Response) => {
         ? row?.meta_phone_number_id ?? null
         : data.metaPhoneNumberId === null
           ? null
-          : data.metaPhoneNumberId.trim();
+          : data.metaPhoneNumberId.trim() || null;
 
     const metaAccessToken =
       data.metaAccessToken === undefined
         ? row?.meta_access_token ?? null
         : data.metaAccessToken === null
           ? null
-          : data.metaAccessToken.trim();
+          : data.metaAccessToken.trim() || null;
 
     const metaWabaId =
       data.metaWabaId === undefined
         ? row?.meta_waba_id ?? null
         : data.metaWabaId === null
           ? null
-          : data.metaWabaId.trim();
+          : data.metaWabaId.trim() || null;
 
     const whatsappConnected = Boolean(metaPhoneNumberId && metaAccessToken);
     const wasConnected = Boolean(row?.whatsapp_connected);

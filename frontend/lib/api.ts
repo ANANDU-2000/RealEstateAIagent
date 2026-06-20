@@ -683,10 +683,35 @@ export async function listConversations(
   return apiFetch(`/conversations${query ? `?${query}` : ''}`, {}, token);
 }
 
+/** Counts-only query — backend returns unread + overdue without loading conversations. */
 export async function getConversationCounts(
   token: string
 ): Promise<{ unreadCount: number; overdueCallbacks: number }> {
   return apiFetch('/conversations?count=true&limit=0', {}, token);
+}
+
+const CONVERSATIONS_PAGE_SIZE = 100;
+
+/** Fetches all conversations in pages (API max 100 per request). */
+export async function listAllConversations(
+  token: string,
+  params: Omit<ListConversationsParams, 'limit' | 'offset'> = {}
+): Promise<Conversation[]> {
+  const all: Conversation[] = [];
+  let offset = 0;
+
+  while (true) {
+    const page = await listConversations(token, {
+      ...params,
+      limit: CONVERSATIONS_PAGE_SIZE,
+      offset,
+    });
+    all.push(...page.conversations);
+    if (page.conversations.length < CONVERSATIONS_PAGE_SIZE) break;
+    offset += CONVERSATIONS_PAGE_SIZE;
+  }
+
+  return all;
 }
 
 export async function getConversation(

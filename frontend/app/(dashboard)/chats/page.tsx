@@ -9,7 +9,6 @@ import {
   type Escalation,
   type Message,
   getConversation,
-  getConversationCounts,
   listConversations,
   markConversationRead,
   sendConversationMessage,
@@ -116,12 +115,9 @@ export default function ChatsPage() {
     setListLoading(true);
     setListError(null);
     try {
-      const [listResult, counts] = await Promise.all([
-        listConversations(accessToken, { count: true }),
-        getConversationCounts(accessToken),
-      ]);
+      const listResult = await listConversations(accessToken, { count: true });
       setConversations(sortConversations(listResult.conversations));
-      setUnreadCount(counts.unreadCount ?? listResult.unreadCount ?? 0);
+      setUnreadCount(listResult.unreadCount ?? 0);
     } catch (err) {
       setListError(getErrorMessage(err));
     } finally {

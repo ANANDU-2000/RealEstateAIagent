@@ -143,17 +143,27 @@ const leadStages = [
   'lost',
 ] as const;
 
-export const conversationListQuerySchema = z.object({
-  status: z.string().max(20).optional(),
-  intent: z.string().max(20).optional(),
-  search: z.string().max(200).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional().default(50),
-  offset: z.coerce.number().int().min(0).optional().default(0),
-  count: z
-    .union([z.literal('true'), z.literal('false'), z.boolean()])
-    .optional()
-    .transform((v) => v === true || v === 'true'),
-});
+export const conversationListQuerySchema = z
+  .object({
+    status: z.string().max(20).optional(),
+    intent: z.string().max(20).optional(),
+    search: z.string().max(200).optional(),
+    limit: z.coerce.number().int().min(0).max(100).optional().default(50),
+    offset: z.coerce.number().int().min(0).optional().default(0),
+    count: z
+      .union([z.literal('true'), z.literal('false'), z.boolean()])
+      .optional()
+      .transform((v) => v === true || v === 'true'),
+  })
+  .superRefine((data, ctx) => {
+    if (data.limit === 0 && !data.count) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Too small: expected number to be >= 1',
+        path: ['limit'],
+      });
+    }
+  });
 
 export const conversationUpdateSchema = z.object({
   humanOverride: z.boolean().optional(),

@@ -90,6 +90,14 @@ export default function WhatsAppSettingsPage() {
   async function handleSave() {
     if (!accessToken) return;
     setFormError(null);
+
+    const phoneId = metaPhoneNumberId.trim();
+    const hasToken = Boolean(metaAccessToken.trim()) || tokenStored;
+    if (hasToken && !phoneId) {
+      setFormError('Phone Number ID is required when an access token is set.');
+      return;
+    }
+
     setSaving(true);
     try {
       const payload: {
@@ -193,6 +201,8 @@ export default function WhatsAppSettingsPage() {
 
   const connected = settings?.whatsappConnected ?? false;
   const connectedAt = formatConnectedAt(settings?.whatsappConnectedAt ?? null);
+  const missingPhoneNumberId =
+    !connected && (tokenStored || Boolean(metaAccessToken.trim())) && !metaPhoneNumberId.trim();
 
   return (
     <SettingsPageShell
@@ -241,6 +251,14 @@ export default function WhatsAppSettingsPage() {
           </div>
         )}
       </Card>
+
+      {missingPhoneNumberId && (
+        <Alert variant="warning">
+          Your access token is saved, but Phone Number ID is missing. Buyers can message your
+          number, yet PropAgent cannot receive those chats until you paste the Phone Number ID from
+          Meta WhatsApp Manager and save.
+        </Alert>
+      )}
 
       <Card className="flex flex-col gap-4">
         <Input

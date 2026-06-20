@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import {
   PropertyForm,
@@ -51,8 +51,10 @@ function validateForm(values: PropertyFormValues): Partial<Record<keyof Property
   return errors;
 }
 
-export default function EditPropertyPage({ params }: { params: { id: string } }) {
+export default function EditPropertyPage() {
   const router = useRouter();
+  const params = useParams();
+  const propertyId = typeof params.id === 'string' ? params.id : '';
   const { accessToken, tenant, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<FormTab>('details');
   const [property, setProperty] = useState<Property | null>(null);
@@ -67,11 +69,11 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
   const [success, setSuccess] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!accessToken) return;
+    if (!accessToken || !propertyId) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await getProperty(accessToken, params.id);
+      const data = await getProperty(accessToken, propertyId);
       setProperty(data.property);
       setPhotos(data.photos);
       setValues(propertyToFormValues(data.property));
@@ -85,7 +87,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
     } finally {
       setLoading(false);
     }
-  }, [accessToken, params.id]);
+  }, [accessToken, propertyId]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -93,12 +95,16 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
       router.replace('/login');
       return;
     }
+    if (!propertyId) {
+      router.replace('/properties');
+      return;
+    }
     void load();
-  }, [accessToken, authLoading, load, router]);
+  }, [accessToken, authLoading, load, propertyId, router]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!accessToken || !values) return;
+    if (!accessToken || !values || !propertyId) return;
 
     const nextErrors = validateForm(values);
     setErrors(nextErrors);
@@ -109,7 +115,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
     setSuccess(null);
     try {
       const payload = { ...formValuesToPayload(values), areaTags: tags };
-      const result = await updateProperty(accessToken, params.id, payload);
+      const result = await updateProperty(accessToken, propertyId, payload);
       setProperty(result.property);
       setValues(propertyToFormValues(result.property));
       setTags(result.property.areaTags ?? []);
@@ -135,7 +141,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
     setDeleting(true);
     setError(null);
     try {
-      await deleteProperty(accessToken, params.id);
+      await deleteProperty(accessToken, propertyId);
       router.push('/properties');
     } catch (err) {
       setError(
@@ -148,7 +154,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
     }
   }
 
-  if (authLoading || loading || !values) {
+  if (authLoading || loading) {
     return (
       <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
         <Skeleton className="h-10 w-48" />
@@ -157,7 +163,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
     );
   }
 
-  if (!property) {
+  if (!propertyId || !values) {
     return (
       <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
         <Alert variant="error">{error ?? 'Property not found.'}</Alert>
@@ -180,7 +186,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-foreground">{property.name}</h1>
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground">{property?.name}</h1>
           <p className="text-[14px] text-muted">Edit property details, photos, and AI tags</p>
         </div>
       </div>
@@ -220,7 +226,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
           {activeTab === 'photos' && accessToken && (
             <PropertyPhotosTab
               token={accessToken}
-              propertyId={params.id}
+              propertyId={propertyId}
               photos={photos}
               onPhotosChange={setPhotos}
             />

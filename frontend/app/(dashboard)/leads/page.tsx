@@ -32,7 +32,7 @@ import {
   type LeadStage,
   type Message,
   getConversation,
-  listConversations,
+  listAllConversations,
   updateConversation,
   updateConversationStage,
 } from '@/lib/api';
@@ -205,8 +205,8 @@ export default function LeadsPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await listConversations(accessToken, { limit: 500 });
-      setConversations(result.conversations);
+      const result = await listAllConversations(accessToken);
+      setConversations(result);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
