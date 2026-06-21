@@ -376,7 +376,19 @@ router.get('/whatsapp', (req: Request, res: Response) => {
     return;
   }
 
-  res.status(403).send('Forbidden');
+  if (!mode && !token) {
+    res.status(200).json({
+      ok: true,
+      service: 'propagent-whatsapp-webhook',
+      message:
+        'Webhook is live. Browser visits are normal — Meta verifies with hub.mode=subscribe.',
+      verifyTokenConfigured: Boolean(process.env.META_VERIFY_TOKEN?.trim()),
+      appSecretConfigured: Boolean(process.env.META_APP_SECRET?.trim()),
+    });
+    return;
+  }
+
+  res.status(403).send('Forbidden — verify token mismatch. Check META_VERIFY_TOKEN on Render.');
 });
 
 async function touchWebhookReceived(tenantId: string | null): Promise<void> {

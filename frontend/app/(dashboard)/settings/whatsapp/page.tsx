@@ -12,11 +12,13 @@ import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 import {
   getWhatsAppHealth,
+  getWhatsAppPhoneStatus,
   getWhatsAppSettings,
   registerWhatsAppPhone,
   testWhatsAppConnection,
   updateWhatsAppSettings,
   type WhatsAppHealth,
+  type WhatsAppPhoneStatus,
   type WhatsAppSettings,
 } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -73,6 +75,8 @@ export default function WhatsAppSettingsPage() {
   const [webhookHealth, setWebhookHealth] = useState<WhatsAppHealth | null>(null);
   const [registerPin, setRegisterPin] = useState('');
   const [registering, setRegistering] = useState(false);
+  const [phoneStatus, setPhoneStatus] = useState<WhatsAppPhoneStatus | null>(null);
+  const [phoneStatusLoading, setPhoneStatusLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const loadSettings = useCallback(async () => {
@@ -116,6 +120,31 @@ export default function WhatsAppSettingsPage() {
       setActiveTab('register');
     }
   }, [settings?.lastWhatsappError, settings?.whatsappConnected]);
+
+  useEffect(() => {
+    const saved =
+      settings?.credentialsSaved ??
+      (tokenStored && Boolean(metaPhoneNumberId.trim() || settings?.metaPhoneNumberId));
+    if (!accessToken || activeTab !== 'register' || !saved) {
+      setPhoneStatus(null);
+      return;
+    }
+    let cancelled = false;
+    setPhoneStatusLoading(true);
+    void getWhatsAppPhoneStatus(accessToken)
+      .then((status) => {
+        if (!cancelled) setPhoneStatus(status);
+      })
+      .catch(() => {
+        if (!cancelled) setPhoneStatus(null);
+      })
+      .finally(() => {
+        if (!cancelled) setPhoneStatusLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, activeTab, settings, tokenStored, metaPhoneNumberId]);
 
   async function handleSave() {
     if (!accessToken) return;
@@ -274,11 +303,12 @@ export default function WhatsAppSettingsPage() {
   return (
     <SettingsPageShell
       title="WhatsApp"
-      description="Connect PropAgent to your Meta business number."
+      description="Meta business number for Arjun."
       loading={loading}
       error={error}
       onRetry={() => void loadSettings()}
     >
+      <div className="w-full space-y-4">
       <TabRow
         items={WA_TABS.map((t) => ({ id: t.id, label: t.label }))}
         activeId={activeTab}
@@ -489,14 +519,36 @@ export default function WhatsAppSettingsPage() {
       )}
 
       {activeTab === 'register' && (
-        <Card className="flex flex-col gap-4">
+        <Card className="flex w-full flex-col gap-4">
           <div>
             <p className="text-sm font-semibold text-foreground">Fix error #133010</p>
             <p className="mt-1 text-sm text-muted">
-              Meta Business Suite may show &quot;Connected&quot; but Cloud API still needs registration.
-              Use the same 6-digit PIN from WhatsApp Manager → Two-step verification.
+              Meta may show &quot;Connected&quot; in Business Suite but Cloud API still needs your
+              6-digit two-step verification PIN once.
             </p>
           </div>
+
+          {phoneStatusLoading && (
+            <p className="text-sm text-muted">Checking Meta phone status…</p>
+          )}
+          {phoneStatus && (
+            <div className="rounded-[var(--radius-md)] border border-border bg-surface-2/60 p-3 text-sm">
+              <p className="font-medium text-foreground">
+                {phoneStatus.verifiedName ?? 'PropAgent'} · {phoneStatus.displayPhoneNumber}
+              </p>
+              <p className="mt-1 text-muted">
+                Meta API status:{' '}
+                <span
+                  className={
+                    phoneStatus.needsRegister ? 'font-semibold text-danger' : 'font-semibold text-success'
+                  }
+                >
+                  {phoneStatus.codeVerificationStatus}
+                </span>
+                {phoneStatus.needsRegister && ' — enter PIN below and register'}
+              </p>
+            </div>
+          )}
           <Input
             label="Two-step verification PIN"
             type="password"
@@ -581,11 +633,17 @@ export default function WhatsAppSettingsPage() {
           )}
 
           <p className="text-xs text-muted">
+            Opening the webhook URL in a browser should show JSON &quot;Webhook is live&quot; (not an
+            error). Meta verifies using hub.mode=subscribe when you click Verify in Meta Developers.
+          </p>
+
+          <p className="text-xs text-muted">
             Verify token: <code>propagent_webhook_verify_2026_secure</code> · Subscribe to{' '}
             <strong>messages</strong>
           </p>
         </Card>
       )}
+      </div>
     </SettingsPageShell>
   );
 }

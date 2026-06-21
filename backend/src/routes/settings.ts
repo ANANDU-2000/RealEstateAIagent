@@ -488,6 +488,61 @@ router.get('/whatsapp/health', async (req: AuthRequest, res: Response) => {
   }
 });
 
+router.get('/whatsapp/phone-status', async (req: AuthRequest, res: Response) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  try {
+    const result = await pool.query<{
+      meta_phone_number_id: string | null;
+      meta_access_token: string | null;
+    }>(
+      `SELECT meta_phone_number_id, meta_access_token FROM broker_settings WHERE tenant_id = $1`,
+      [tenantId]
+    );
+
+    const row = result.rows[0];
+    if (!row?.meta_phone_number_id || !row.meta_access_token) {
+      res.status(400).json({ error: 'Save credentials first.' });
+      return;
+    }
+
+    const response = await fetch(
+      `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${row.meta_phone_number_id}?fields=display_phone_number,verified_name,code_verification_status`,
+      { headers: { Authorization: `Bearer ${row.meta_access_token}` } }
+    );
+
+    const payload = (await response.json()) as {
+      display_phone_number?: string;
+      verified_name?: string;
+      code_verification_status?: string;
+      error?: { message?: string };
+    };
+
+    if (!response.ok) {
+      res.status(502).json({
+        error: payload.error?.message ?? 'Could not read phone status from Meta.',
+      });
+      return;
+    }
+
+    const needsRegister = payload.code_verification_status !== 'VERIFIED';
+
+    res.json({
+      displayPhoneNumber: payload.display_phone_number ?? null,
+      verifiedName: payload.verified_name ?? null,
+      codeVerificationStatus: payload.code_verification_status ?? 'UNKNOWN',
+      needsRegister,
+    });
+  } catch (error) {
+    console.error('Get WhatsApp phone status failed:', error);
+    res.status(500).json({ error: 'Failed to load phone status from Meta.' });
+  }
+});
+
 router.post('/whatsapp/register-phone', async (req: AuthRequest, res: Response) => {
   const tenantId = req.tenantId;
   if (!tenantId) {

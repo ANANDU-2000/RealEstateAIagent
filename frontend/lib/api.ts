@@ -288,6 +288,17 @@ export async function getWhatsAppHealth(token: string): Promise<WhatsAppHealth> 
   return apiFetch('/settings/whatsapp/health', {}, token);
 }
 
+export type WhatsAppPhoneStatus = {
+  displayPhoneNumber: string | null;
+  verifiedName: string | null;
+  codeVerificationStatus: string;
+  needsRegister: boolean;
+};
+
+export async function getWhatsAppPhoneStatus(token: string): Promise<WhatsAppPhoneStatus> {
+  return apiFetch('/settings/whatsapp/phone-status', {}, token);
+}
+
 export async function registerWhatsAppPhone(
   token: string,
   pin: string

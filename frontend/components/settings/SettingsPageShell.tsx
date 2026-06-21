@@ -78,15 +78,15 @@ export function SettingsPageShell({
   }
 
   return (
-    <div className="flex flex-col pb-8">
-      <header className="shrink-0">
+    <div className="flex w-full flex-col pb-6">
+      <header className="shrink-0 border-b border-border/60 pb-4">
         <h2 className="text-heading-lg text-foreground">{title}</h2>
         {description && (
           <p className="mt-1 text-[13px] leading-snug text-muted">{description}</p>
         )}
       </header>
 
-      <div className="mt-5 flex flex-col gap-4">
+      <div className="mt-4 flex w-full flex-col gap-4">
         {children}
       </div>
 
