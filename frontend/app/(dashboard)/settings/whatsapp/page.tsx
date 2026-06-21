@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Copy, Eye, EyeOff, Pencil } from 'lucide-react';
+import { TabRow } from '@/components/layout/TabRow';
 import { SettingsPageShell } from '@/components/settings/SettingsPageShell';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
@@ -21,14 +22,16 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
-const SETUP_STEPS = [
-  'Open Meta Business Suite and select or create your business account.',
-  'In WhatsApp Manager, register your phone number until Meta shows Connected (fixes error #133010).',
-  'Copy the Phone Number ID and WhatsApp Business Account ID (WABA).',
-  'Generate a permanent access token with whatsapp_business_messaging permission.',
-  'Paste credentials below, save, then send a test message. Connected status requires a successful test.',
-  'In Meta App → WhatsApp → Configuration, set webhook URL and verify token (see Webhook health below).',
+type WaTab = 'overview' | 'credentials' | 'register' | 'webhook';
+
+const WA_TABS: { id: WaTab; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'credentials', label: 'Credentials' },
+  { id: 'register', label: 'Register phone' },
+  { id: 'webhook', label: 'Webhook' },
 ];
+
+const CORRECT_WEBHOOK = 'https://realestateaiagent-0ubp.onrender.com/webhook/whatsapp';
 
 function formatConnectedAt(iso: string | null): string | null {
   if (!iso) return null;
@@ -42,10 +45,15 @@ function formatConnectedAt(iso: string | null): string | null {
   }
 }
 
+function has133010Error(msg: string | null | undefined): boolean {
+  return Boolean(msg?.includes('133010'));
+}
+
 export default function WhatsAppSettingsPage() {
   const { accessToken } = useAuth();
   const { toast } = useToast();
 
+  const [activeTab, setActiveTab] = useState<WaTab>('overview');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState<WhatsAppSettings | null>(null);
@@ -56,7 +64,7 @@ export default function WhatsAppSettingsPage() {
   const [metaAccessToken, setMetaAccessToken] = useState('');
   const [tokenStored, setTokenStored] = useState(false);
   const [showToken, setShowToken] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
+  const [editingCredentials, setEditingCredentials] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -84,6 +92,10 @@ export default function WhatsAppSettingsPage() {
       setTokenStored(data.hasAccessToken);
       setMetaAccessToken('');
       setShowToken(false);
+      const saved =
+        data.credentialsSaved ??
+        (data.hasAccessToken && Boolean(data.metaPhoneNumberId));
+      setEditingCredentials(!saved);
     } catch (err) {
       const message =
         err && typeof err === 'object' && 'error' in err
@@ -98,6 +110,12 @@ export default function WhatsAppSettingsPage() {
   useEffect(() => {
     void loadSettings();
   }, [loadSettings]);
+
+  useEffect(() => {
+    if (has133010Error(settings?.lastWhatsappError) && !settings?.whatsappConnected) {
+      setActiveTab('register');
+    }
+  }, [settings?.lastWhatsappError, settings?.whatsappConnected]);
 
   async function handleSave() {
     if (!accessToken) return;
@@ -125,9 +143,7 @@ export default function WhatsAppSettingsPage() {
       };
 
       const tokenValue = metaAccessToken.trim();
-      if (tokenValue) {
-        payload.metaAccessToken = tokenValue;
-      }
+      if (tokenValue) payload.metaAccessToken = tokenValue;
 
       const result = await updateWhatsAppSettings(accessToken, payload);
       setSettings((prev) =>
@@ -145,27 +161,18 @@ export default function WhatsAppSettingsPage() {
       if (tokenValue) {
         setTokenStored(true);
         setMetaAccessToken('');
-        setShowToken(false);
       }
-      if (result.credentialsChanged) {
-        setSaveSuccess(
-          'Saved. Connection reset because credentials changed — send a test message to verify.'
-        );
-        toast('Credentials updated. Send a test message to verify WhatsApp.');
-      } else if (result.whatsappConnected) {
-        setSaveSuccess('Saved. WhatsApp is connected and verified.');
-        toast('Settings saved. WhatsApp is connected.');
-      } else {
-        setSaveSuccess('Saved. Credentials stored — use “Send test message” to verify.');
-        toast('Settings saved.');
-      }
+      setEditingCredentials(false);
+      setSaveSuccess('Credentials saved. Go to Overview and send a test message.');
+      toast('Credentials saved.');
       void loadSettings();
+      setActiveTab('overview');
     } catch (err) {
-      const message =
+      setFormError(
         err && typeof err === 'object' && 'error' in err
           ? String((err as { error: string }).error)
-          : 'Could not save settings.';
-      setFormError(message);
+          : 'Could not save settings.'
+      );
     } finally {
       setSaving(false);
     }
@@ -179,11 +186,9 @@ export default function WhatsAppSettingsPage() {
     try {
       const result = await testWhatsAppConnection(accessToken);
       if (result.whatsappConnected) {
-        setSaveSuccess('Test message sent successfully. WhatsApp is connected.');
-        setSettings((prev) => (prev ? { ...prev, whatsappConnected: true } : prev));
-        toast('Test passed — WhatsApp is connected.');
+        setSaveSuccess('Test message sent. WhatsApp is connected.');
+        toast('WhatsApp connected.');
       } else {
-        setSaveSuccess(null);
         toast(result.message);
       }
       void loadSettings();
@@ -193,6 +198,7 @@ export default function WhatsAppSettingsPage() {
           ? String((err as { error: string }).error)
           : 'Test message failed.';
       setFormError(message);
+      if (has133010Error(message)) setActiveTab('register');
     } finally {
       setTesting(false);
     }
@@ -201,17 +207,14 @@ export default function WhatsAppSettingsPage() {
   async function handleRegisterPhone() {
     if (!accessToken) return;
     setFormError(null);
-    setSaveSuccess(null);
     setRegistering(true);
     try {
       const result = await registerWhatsAppPhone(accessToken, registerPin.trim());
       setRegisterPin('');
-      if (result.whatsappConnected) {
-        setSaveSuccess('Phone registered with Meta. Send a test message, then try WhatsApp again.');
-        setSettings((prev) => (prev ? { ...prev, whatsappConnected: true } : prev));
-      }
       toast(result.message);
+      setSaveSuccess('Phone registered with Meta. Send a test message from Overview.');
       void loadSettings();
+      setActiveTab('overview');
     } catch (err) {
       const message =
         err && typeof err === 'object' && 'error' in err
@@ -225,13 +228,7 @@ export default function WhatsAppSettingsPage() {
 
   async function handleDisconnect() {
     if (!accessToken) return;
-    const confirmed = window.confirm(
-      'Disconnect WhatsApp? Arjun will stop receiving and sending messages until you reconnect.'
-    );
-    if (!confirmed) return;
-
-    setFormError(null);
-    setSaveSuccess(null);
+    if (!window.confirm('Disconnect WhatsApp? Arjun will stop replying until you reconnect.')) return;
     setDisconnecting(true);
     try {
       await updateWhatsAppSettings(accessToken, {
@@ -240,22 +237,23 @@ export default function WhatsAppSettingsPage() {
         metaAccessToken: null,
         metaWabaId: null,
       });
-      setWhatsappNumber('');
-      setMetaPhoneNumberId('');
-      setMetaWabaId('');
-      setMetaAccessToken('');
-      setTokenStored(false);
+      setEditingCredentials(true);
       toast('WhatsApp disconnected');
       void loadSettings();
     } catch (err) {
-      const message =
+      setFormError(
         err && typeof err === 'object' && 'error' in err
           ? String((err as { error: string }).error)
-          : 'Could not disconnect WhatsApp.';
-      setFormError(message);
+          : 'Could not disconnect.'
+      );
     } finally {
       setDisconnecting(false);
     }
+  }
+
+  function copyWebhookUrl(url: string) {
+    void navigator.clipboard.writeText(url);
+    toast('Webhook URL copied');
   }
 
   const connected = settings?.whatsappConnected ?? false;
@@ -263,87 +261,137 @@ export default function WhatsAppSettingsPage() {
     settings?.credentialsSaved ??
     (tokenStored && Boolean(metaPhoneNumberId.trim() || settings?.metaPhoneNumberId));
   const connectedAt = formatConnectedAt(settings?.whatsappConnectedAt ?? null);
-  const lastTestFailed = settings?.lastWhatsappTestOk === false && settings?.lastWhatsappError;
-  const missingPhoneNumberId =
-    !credentialsSaved && (tokenStored || Boolean(metaAccessToken.trim())) && !metaPhoneNumberId.trim();
-  const canTest =
-    Boolean(metaPhoneNumberId.trim() || settings?.metaPhoneNumberId) &&
-    (tokenStored || Boolean(metaAccessToken.trim()) || settings?.hasAccessToken);
+  const lastError = settings?.lastWhatsappError;
+  const show133010 = has133010Error(lastError) || has133010Error(formError);
   const webhookHealthData = webhookHealth ?? settings?.webhookHealth;
+  const callbackUrl = webhookHealthData?.callbackUrl ?? CORRECT_WEBHOOK;
+  const webhookUrlWrong = callbackUrl !== CORRECT_WEBHOOK;
+  const canTest =
+    credentialsSaved &&
+    Boolean(metaPhoneNumberId.trim() || settings?.metaPhoneNumberId) &&
+    (tokenStored || settings?.hasAccessToken);
 
   return (
     <SettingsPageShell
       title="WhatsApp"
-      description="Connect your business number so Arjun can reply to buyers on WhatsApp."
+      description="Connect PropAgent to your Meta business number."
       loading={loading}
       error={error}
       onRetry={() => void loadSettings()}
     >
-      <Card className="border-primary/20 bg-primary-light/40">
-        <p className="text-[13px] font-semibold text-foreground">Paste these from Meta Business Suite</p>
-        <p className="mt-1 text-[12px] leading-relaxed text-muted">
-          Log in as <strong className="font-medium text-foreground">anandukrishna2999@gmail.com</strong> (PA-IN-0003).
-          Demo accounts cannot receive WhatsApp.
-        </p>
-        <dl className="mt-3 grid gap-2 text-[12px] sm:grid-cols-2">
-          <div className="rounded-[var(--radius-md)] border border-border/80 bg-surface px-3 py-2">
-            <dt className="text-muted">WhatsApp number</dt>
-            <dd className="mt-0.5 font-mono font-semibold text-foreground">9056458838</dd>
-          </div>
-          <div className="rounded-[var(--radius-md)] border border-border/80 bg-surface px-3 py-2">
-            <dt className="text-muted">Phone Number ID</dt>
-            <dd className="mt-0.5 font-mono font-semibold text-foreground">1234959086357829</dd>
-          </div>
-          <div className="rounded-[var(--radius-md)] border border-border/80 bg-surface px-3 py-2 sm:col-span-2">
-            <dt className="text-muted">WABA ID</dt>
-            <dd className="mt-0.5 font-mono font-semibold text-foreground">930455233343881</dd>
-          </div>
-        </dl>
-        <p className="mt-3 text-[11px] text-muted">
-          Render also needs <code className="text-foreground">META_APP_SECRET</code> (Meta App → Settings → Basic).
-          Without it, inbound chats and AI replies will not work.
-        </p>
-      </Card>
+      <TabRow
+        items={WA_TABS.map((t) => ({ id: t.id, label: t.label }))}
+        activeId={activeTab}
+        onChange={(id) => setActiveTab(id as WaTab)}
+        variant="pills"
+        className="w-full"
+      />
 
-      <Card className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium text-foreground">Connection status</p>
-            <p className="mt-0.5 text-sm text-muted">
-              {connected
-                ? whatsappNumber || 'Verified and ready'
-                : credentialsSaved
-                  ? 'Credentials saved. Send a test message to verify.'
-                  : 'Not connected. Add Meta credentials below.'}
-            </p>
-            {connectedAt && (
-              <p className="mt-1 text-xs text-muted">Connected since {connectedAt}</p>
-            )}
+      {formError && activeTab !== 'credentials' && (
+        <Alert variant="error">{formError}</Alert>
+      )}
+      {saveSuccess && activeTab === 'overview' && (
+        <Alert variant="success">
+          <span className="inline-flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            {saveSuccess}
+          </span>
+        </Alert>
+      )}
+
+      {activeTab === 'overview' && (
+        <Card className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Connection</p>
+              <p className="mt-1 text-sm text-muted">
+                {connected
+                  ? `Live on ${whatsappNumber || settings?.whatsappNumber}`
+                  : credentialsSaved
+                    ? 'Credentials saved — verify with a test message.'
+                    : 'Add credentials in the Credentials tab first.'}
+              </p>
+              {connectedAt && (
+                <p className="mt-1 text-xs text-muted">Connected since {connectedAt}</p>
+              )}
+            </div>
+            <Badge variant={connected ? 'success' : credentialsSaved ? 'warning' : 'warning'}>
+              {connected ? 'Connected' : credentialsSaved ? 'Needs test' : 'Not set up'}
+            </Badge>
           </div>
-          <Badge variant={connected ? 'success' : credentialsSaved ? 'warning' : 'warning'}>
-            {connected ? 'Connected' : credentialsSaved ? 'Needs verification' : 'Disconnected'}
-          </Badge>
-        </div>
 
-        {lastTestFailed && !connected && (
-          <Alert variant="error">{settings?.lastWhatsappError}</Alert>
-        )}
+          {show133010 && (
+            <Alert variant="error">
+              Error #133010 — phone not registered for Cloud API. Open the{' '}
+              <button
+                type="button"
+                className="font-semibold text-primary underline"
+                onClick={() => setActiveTab('register')}
+              >
+                Register phone
+              </button>{' '}
+              tab, enter your Meta 6-digit PIN, then test again.
+            </Alert>
+          )}
 
-        {(connected || credentialsSaved) && (
+          {lastError && !show133010 && !connected && (
+            <Alert variant="error">{lastError}</Alert>
+          )}
+
+          {credentialsSaved && (
+            <dl className="grid gap-2 rounded-[var(--radius-lg)] border border-border bg-surface-2/50 p-3 text-[12px] sm:grid-cols-2">
+              <div>
+                <dt className="text-muted">Number</dt>
+                <dd className="font-mono font-medium text-foreground">{whatsappNumber || '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-muted">Phone Number ID</dt>
+                <dd className="font-mono font-medium text-foreground">{metaPhoneNumberId || '—'}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-muted">WABA</dt>
+                <dd className="font-mono font-medium text-foreground">{metaWabaId || '—'}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-muted">Access token</dt>
+                <dd className="text-foreground">{tokenStored ? 'Saved securely' : 'Not saved'}</dd>
+              </div>
+            </dl>
+          )}
+
           <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              loading={testing}
-              disabled={!canTest}
-              onClick={() => void handleTest()}
-            >
-              Send test message
-            </Button>
+            {!credentialsSaved && (
+              <Button size="sm" onClick={() => setActiveTab('credentials')}>
+                Add credentials
+              </Button>
+            )}
+            {credentialsSaved && (
+              <>
+                <Button
+                  size="sm"
+                  loading={testing}
+                  disabled={!canTest}
+                  onClick={() => void handleTest()}
+                >
+                  Send test message
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingCredentials(true);
+                    setActiveTab('credentials');
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit credentials
+                </Button>
+              </>
+            )}
             {connected && (
               <Button
-                variant="danger"
                 size="sm"
+                variant="danger"
                 loading={disconnecting}
                 onClick={() => void handleDisconnect()}
               >
@@ -351,185 +399,193 @@ export default function WhatsAppSettingsPage() {
               </Button>
             )}
           </div>
-        )}
-      </Card>
+        </Card>
+      )}
 
-      {webhookHealthData && (
-        <Card className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-foreground">Webhook health</p>
+      {activeTab === 'credentials' && (
+        <Card className="flex flex-col gap-4">
+          {!editingCredentials && credentialsSaved ? (
+            <>
+              <p className="text-sm text-muted">
+                Credentials are saved. Use Overview to test, or edit if Meta IDs changed.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                onClick={() => setEditingCredentials(true)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit credentials
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted">
+                Enter once from Meta Business Suite → WhatsApp Manager. After saving, you will not
+                need to fill these again unless you change Meta apps.
+              </p>
+              <Input
+                label="WhatsApp business number"
+                type="tel"
+                placeholder="9056458838"
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                hint="Digits only, with country code (no +)."
+              />
+              <Input
+                label="Phone Number ID"
+                placeholder="1234959086357829"
+                value={metaPhoneNumberId}
+                onChange={(e) => setMetaPhoneNumberId(e.target.value)}
+              />
+              <Input
+                label="WABA ID"
+                placeholder="930455233343881"
+                value={metaWabaId}
+                onChange={(e) => setMetaWabaId(e.target.value)}
+              />
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="meta-access-token" className="text-sm font-medium text-foreground">
+                  Access token
+                </label>
+                <div className="relative">
+                  <input
+                    id="meta-access-token"
+                    type={showToken ? 'text' : 'password'}
+                    className={cn(
+                      'h-11 w-full rounded-lg border border-border bg-surface px-3 pr-10 text-sm',
+                      'focus:border-primary focus:shadow-[var(--focus-ring)] outline-none'
+                    )}
+                    placeholder={
+                      tokenStored ? 'Leave blank to keep saved token' : 'Paste permanent token'
+                    }
+                    value={metaAccessToken}
+                    onChange={(e) => setMetaAccessToken(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted"
+                    onClick={() => setShowToken((v) => !v)}
+                  >
+                    {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              {formError && <Alert variant="error">{formError}</Alert>}
+              <div className="flex flex-wrap gap-2">
+                <Button loading={saving} onClick={() => void handleSave()}>
+                  Save credentials
+                </Button>
+                {credentialsSaved && (
+                  <Button variant="ghost" onClick={() => setEditingCredentials(false)}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </Card>
+      )}
+
+      {activeTab === 'register' && (
+        <Card className="flex flex-col gap-4">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Fix error #133010</p>
+            <p className="mt-1 text-sm text-muted">
+              Meta Business Suite may show &quot;Connected&quot; but Cloud API still needs registration.
+              Use the same 6-digit PIN from WhatsApp Manager → Two-step verification.
+            </p>
+          </div>
+          <Input
+            label="Two-step verification PIN"
+            type="password"
+            inputMode="numeric"
+            maxLength={6}
+            placeholder="6-digit PIN"
+            value={registerPin}
+            onChange={(e) => setRegisterPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          />
+          {formError && <Alert variant="error">{formError}</Alert>}
+          <Button
+            loading={registering}
+            disabled={registerPin.length !== 6 || !credentialsSaved}
+            onClick={() => void handleRegisterPhone()}
+          >
+            Register phone with Meta
+          </Button>
+          {!credentialsSaved && (
+            <p className="text-xs text-muted">Save credentials first, then register.</p>
+          )}
+        </Card>
+      )}
+
+      {activeTab === 'webhook' && webhookHealthData && (
+        <Card className="flex flex-col gap-4">
+          <p className="text-sm font-semibold text-foreground">Webhook (for inbound chats)</p>
           <ul className="space-y-2 text-sm text-muted">
             <li>
-              Verify token on server:{' '}
-              <span className={webhookHealthData.verifyTokenConfigured ? 'text-success' : 'text-danger'}>
+              Verify token:{' '}
+              <span
+                className={
+                  webhookHealthData.verifyTokenConfigured ? 'text-success' : 'text-danger'
+                }
+              >
                 {webhookHealthData.verifyTokenConfigured ? 'Configured' : 'Missing on Render'}
               </span>
             </li>
             <li>
-              App secret on server:{' '}
-              <span className={webhookHealthData.appSecretConfigured ? 'text-success' : 'text-danger'}>
-                {webhookHealthData.appSecretConfigured ? 'Configured' : 'Missing — inbound chats will not appear'}
+              App secret:{' '}
+              <span
+                className={
+                  webhookHealthData.appSecretConfigured ? 'text-success' : 'text-danger'
+                }
+              >
+                {webhookHealthData.appSecretConfigured ? 'Configured' : 'Missing on Render'}
               </span>
             </li>
             <li>
-              Callback URL:{' '}
-              <code className="break-all text-xs text-foreground">{webhookHealthData.callbackUrl}</code>
+              Last webhook:{' '}
+              {webhookHealth?.lastWebhookAt
+                ? formatConnectedAt(webhookHealth.lastWebhookAt)
+                : 'None yet'}
             </li>
-            {webhookHealth && (
-              <li>
-                Last webhook ping:{' '}
-                {webhookHealth.lastWebhookAt
-                  ? formatConnectedAt(webhookHealth.lastWebhookAt) ?? 'Recently'
-                  : 'None — set Meta webhook URL and subscribe to messages'}
-              </li>
-            )}
-            {webhookHealth && (
-              <li>
-                Last inbound message:{' '}
-                {webhookHealth.lastInboundMessageAt
-                  ? formatConnectedAt(webhookHealth.lastInboundMessageAt) ?? 'Recently'
-                  : 'None yet — register phone, then message your business number from WhatsApp'}
-              </li>
-            )}
+            <li>
+              Last inbound message:{' '}
+              {webhookHealth?.lastInboundMessageAt
+                ? formatConnectedAt(webhookHealth.lastInboundMessageAt)
+                : 'None yet'}
+            </li>
           </ul>
+
+          <div className="rounded-[var(--radius-md)] border border-border bg-surface-2/50 p-3">
+            <p className="text-xs font-medium text-muted">Paste this URL in Meta → WhatsApp → Configuration</p>
+            <code className="mt-2 block break-all text-[12px] text-foreground">{CORRECT_WEBHOOK}</code>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-3"
+              onClick={() => copyWebhookUrl(CORRECT_WEBHOOK)}
+            >
+              <Copy className="h-3.5 w-3.5" />
+              Copy webhook URL
+            </Button>
+          </div>
+
+          {webhookUrlWrong && (
+            <Alert variant="warning">
+              Server reported a different URL ({callbackUrl}). Set{' '}
+              <code>PUBLIC_API_URL=https://realestateaiagent-0ubp.onrender.com</code> on Render and
+              use the URL above in Meta.
+            </Alert>
+          )}
+
+          <p className="text-xs text-muted">
+            Verify token: <code>propagent_webhook_verify_2026_secure</code> · Subscribe to{' '}
+            <strong>messages</strong>
+          </p>
         </Card>
       )}
-
-      <Card className="flex flex-col gap-4">
-        <div>
-          <p className="text-sm font-medium text-foreground">Register phone with Meta</p>
-          <p className="mt-1 text-sm text-muted">
-            If test messages fail with error #133010, enter your 6-digit two-step verification PIN
-            from Meta WhatsApp Manager and register the phone here.
-          </p>
-        </div>
-        <Input
-          label="Two-step verification PIN"
-          type="password"
-          inputMode="numeric"
-          maxLength={6}
-          placeholder="6-digit PIN"
-          value={registerPin}
-          onChange={(e) => setRegisterPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-        />
-        <Button
-          variant="outline"
-          loading={registering}
-          disabled={registerPin.length !== 6}
-          onClick={() => void handleRegisterPhone()}
-        >
-          Register phone with Meta
-        </Button>
-      </Card>
-
-      {missingPhoneNumberId && (
-        <Alert variant="warning">
-          Your access token is saved, but Phone Number ID is missing. Buyers can message your
-          number, yet PropAgent cannot receive those chats until you paste the Phone Number ID from
-          Meta WhatsApp Manager and save.
-        </Alert>
-      )}
-
-      <Card className="flex flex-col gap-4">
-        <Input
-          label="WhatsApp business number"
-          type="tel"
-          placeholder="+91 98765 43210"
-          value={whatsappNumber}
-          onChange={(e) => setWhatsappNumber(e.target.value)}
-          hint="Include country code. Test messages are sent to this number."
-        />
-
-        <Input
-          label="Phone Number ID"
-          placeholder="1234959086357829"
-          value={metaPhoneNumberId}
-          onChange={(e) => setMetaPhoneNumberId(e.target.value)}
-          hint="Phone profile modal header in Meta WhatsApp Manager"
-        />
-
-        <Input
-          label="WhatsApp Business Account ID (WABA)"
-          placeholder="930455233343881"
-          value={metaWabaId}
-          onChange={(e) => setMetaWabaId(e.target.value)}
-          hint="Business asset ID in Meta Business Suite"
-        />
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="meta-access-token" className="text-sm font-medium text-foreground">
-            Access token
-          </label>
-          <div className="relative">
-            <input
-              id="meta-access-token"
-              type={showToken ? 'text' : 'password'}
-              className={cn(
-                'h-11 w-full rounded-lg border bg-surface px-3 pr-10 text-sm text-foreground',
-                'placeholder:text-muted-light outline-none transition-shadow',
-                'focus:border-primary focus:shadow-[var(--focus-ring)]'
-              )}
-              placeholder={tokenStored ? 'Token saved. Enter a new value to replace.' : 'Paste permanent access token'}
-              value={metaAccessToken}
-              onChange={(e) => setMetaAccessToken(e.target.value)}
-            />
-            <button
-              type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted hover:text-foreground"
-              onClick={() => setShowToken((v) => !v)}
-              aria-label={showToken ? 'Hide token' : 'Show token'}
-            >
-              {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-          <p className="text-xs text-muted">
-            {tokenStored
-              ? 'Leave blank to keep your saved token. Enter a new value to replace it.'
-              : 'Required for sending and receiving WhatsApp messages.'}
-          </p>
-        </div>
-
-        {formError && <Alert variant="error">{formError}</Alert>}
-        {saveSuccess && !formError && (
-          <Alert variant="success">
-            <span className="inline-flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              {saveSuccess}
-            </span>
-          </Alert>
-        )}
-
-        <div className="flex flex-wrap gap-3">
-          <Button loading={saving} onClick={() => void handleSave()}>
-            Save settings
-          </Button>
-        </div>
-      </Card>
-
-      <Card padding="sm" className="overflow-hidden">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between gap-2 px-2 py-2 text-left"
-          onClick={() => setGuideOpen((v) => !v)}
-          aria-expanded={guideOpen}
-        >
-          <span className="text-sm font-medium text-foreground">How to connect WhatsApp</span>
-          {guideOpen ? (
-            <ChevronUp className="h-4 w-4 shrink-0 text-muted" />
-          ) : (
-            <ChevronDown className="h-4 w-4 shrink-0 text-muted" />
-          )}
-        </button>
-        {guideOpen && (
-          <ol className="flex flex-col gap-2 border-t border-border px-2 pb-2 pt-3 text-sm text-muted">
-            {SETUP_STEPS.map((step, index) => (
-              <li key={step} className="flex gap-2">
-                <span className="font-mono text-xs text-primary">{index + 1}.</span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </Card>
     </SettingsPageShell>
   );
 }

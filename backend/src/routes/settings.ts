@@ -66,13 +66,27 @@ function normalizeWhatsappRecipient(number: string): string {
   return number.replace(/\D/g, '');
 }
 
+function getPublicApiBaseUrl(): string {
+  const explicit = process.env.PUBLIC_API_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, '');
+
+  const renderUrl = process.env.RENDER_EXTERNAL_URL?.trim();
+  // Prefer canonical production URL when Render still reports an old service hostname
+  if (
+    renderUrl &&
+    renderUrl.includes('realestateaiagent-0ubp.onrender.com')
+  ) {
+    return renderUrl.replace(/\/$/, '');
+  }
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://realestateaiagent-0ubp.onrender.com';
+  }
+  if (renderUrl) return renderUrl.replace(/\/$/, '');
+  return `http://localhost:${process.env.PORT ?? 3001}`;
+}
+
 function getWebhookCallbackUrl(): string {
-  const base =
-    process.env.RENDER_EXTERNAL_URL ??
-    (process.env.NODE_ENV === 'production'
-      ? 'https://realestateaiagent-0ubp.onrender.com'
-      : `http://localhost:${process.env.PORT ?? 3001}`);
-  return `${base.replace(/\/$/, '')}/webhook/whatsapp`;
+  return `${getPublicApiBaseUrl()}/webhook/whatsapp`;
 }
 
 function hasWhatsAppCredentials(
