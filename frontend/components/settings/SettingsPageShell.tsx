@@ -38,7 +38,7 @@ export function SettingsPageShell({
 
   if (authLoading || (loading && !error)) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex flex-col pb-8">
         <div className="shrink-0">
           <Skeleton className="h-8 w-40" />
           <Skeleton className="mt-2 h-4 w-full max-w-md" />
@@ -56,7 +56,7 @@ export function SettingsPageShell({
     return (
       <div className="flex flex-col gap-4">
         <div>
-          <h2 className="text-[24px] font-bold tracking-tight text-foreground">{title}</h2>
+          <h2 className="text-heading-lg text-foreground">{title}</h2>
           {description && <p className="mt-1 text-[13px] text-muted">{description}</p>}
         </div>
         <Alert variant="error">{error}</Alert>
@@ -78,15 +78,15 @@ export function SettingsPageShell({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex flex-col pb-8">
       <header className="shrink-0">
-        <h2 className="text-[24px] font-bold tracking-tight text-foreground">{title}</h2>
+        <h2 className="text-heading-lg text-foreground">{title}</h2>
         {description && (
           <p className="mt-1 text-[13px] leading-snug text-muted">{description}</p>
         )}
       </header>
 
-      <div className="mt-5 flex min-h-0 flex-1 flex-col gap-4">
+      <div className="mt-5 flex flex-col gap-4">
         {children}
       </div>
 

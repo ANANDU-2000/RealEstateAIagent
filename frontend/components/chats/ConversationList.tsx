@@ -13,6 +13,7 @@ import {
   truncatePreview,
 } from '@/lib/chats-utils';
 import { cn } from '@/lib/utils';
+import { TabRow } from '@/components/layout/TabRow';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -81,29 +82,16 @@ export function ConversationList({
       </div>
 
       <div className="shrink-0 border-b border-border/60 px-3 py-2.5">
-        <div className="flex gap-1 overflow-x-auto">
-          {CHAT_TABS_PRIMARY.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => onTabChange(tab.id)}
-                className={cn(
-                  'shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all',
-                  isActive
-                    ? 'bg-surface text-foreground shadow-[var(--shadow-sm)]'
-                    : 'text-muted hover:text-foreground'
-                )}
-              >
-                {tab.label}
-                <span className={cn('ml-1 tabular-nums', isActive ? 'text-muted' : 'text-muted/70')}>
-                  ({tabCounts[tab.id]})
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <TabRow
+          variant="pills"
+          noFade
+          activeId={activeTab}
+          onChange={(id) => onTabChange(id as ChatTab)}
+          items={CHAT_TABS_PRIMARY.map((tab) => ({
+            id: tab.id,
+            label: `${tab.label} (${tabCounts[tab.id]})`,
+          }))}
+        />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

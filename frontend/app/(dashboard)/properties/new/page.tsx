@@ -10,6 +10,7 @@ import {
   formValuesToPayload,
   type PropertyFormValues,
 } from '@/components/properties/PropertyForm';
+import { PageShell } from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -86,16 +87,16 @@ export default function NewPropertyPage() {
 
   if (authLoading || !accessToken) {
     return (
-      <div className="flex h-[calc(100vh-7rem)] flex-col overflow-hidden">
-        <Skeleton className="mb-4 h-6 w-40" />
+      <PageShell fill>
+        <Skeleton className="h-6 w-40" />
         <Skeleton className="h-8 w-56" />
-        <Skeleton className="mt-6 flex-1 rounded-[var(--radius-2xl)]" />
-      </div>
+        <Skeleton className="flex-1 rounded-[var(--radius-2xl)]" />
+      </PageShell>
     );
   }
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] max-h-[900px] flex-col overflow-hidden lg:h-[calc(100vh-5.5rem)]">
+    <PageShell fill className="max-w-3xl">
       <div className="shrink-0">
         <Link
           href="/properties"
@@ -104,30 +105,21 @@ export default function NewPropertyPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to properties
         </Link>
-        <h1 className="mt-3 text-[24px] font-bold tracking-tight text-foreground">Add Property</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className="mt-3 text-heading-lg text-foreground">Add Property</h1>
+        <p className="mt-1.5 text-[14px] text-muted">
           After saving, open the property to add photos and PDF brochures for the AI agent.
         </p>
       </div>
 
       {error && (
-        <Alert variant="error" className="mt-4 shrink-0">
+        <Alert variant="error" className="shrink-0">
           {error}
         </Alert>
       )}
 
-      <form
-        onSubmit={(e) => void handleSubmit(e)}
-        className="mt-4 flex min-h-0 flex-1 flex-col"
-      >
-        <div
-          className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-2xl)] border border-border bg-surface p-5 shadow-[var(--shadow-lg)] md:p-6"
-          style={{
-            boxShadow:
-              '0 0 0 1px rgba(15, 23, 42, 0.06), 0 8px 32px rgba(15, 23, 42, 0.08)',
-          }}
-        >
-          <div className="min-h-0 flex-1 overflow-hidden">
+      <form onSubmit={(e) => void handleSubmit(e)} className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-2xl)] border border-border bg-surface p-5 shadow-[var(--shadow-lg)] md:p-6">
+          <div className="dashboard-scroll min-h-0 flex-1 pr-1">
             <PropertyForm
               values={values}
               onChange={setValues}
@@ -138,22 +130,17 @@ export default function NewPropertyPage() {
           </div>
 
           <div className="mt-4 flex shrink-0 flex-wrap items-center gap-3 border-t border-border/60 pt-4">
-            <Button type="submit" loading={submitting} size="md" className="min-w-[148px] uppercase tracking-wide">
+            <Button type="submit" loading={submitting} size="md" className="min-w-[148px]">
               Create property
             </Button>
             <Link href="/properties">
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                className="min-w-[100px] uppercase tracking-wide"
-              >
+              <Button type="button" variant="outline" size="md" className="min-w-[100px]">
                 Cancel
               </Button>
             </Link>
           </div>
         </div>
       </form>
-    </div>
+    </PageShell>
   );
 }

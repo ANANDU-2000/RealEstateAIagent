@@ -430,7 +430,7 @@ export default function ChatsPage() {
   const showProfile = mobileView === 'profile';
 
   return (
-    <div className="-mx-8 -mt-7 -mb-28 flex h-[calc(100dvh-7rem)] min-h-0 overflow-hidden lg:-mb-8 lg:h-[calc(100dvh-3.5rem)]">
+    <div className="dashboard-fill overflow-hidden rounded-[var(--radius-xl)] border border-border bg-surface shadow-[var(--shadow-card)]">
       {/* Column 1 — conversation list */}
       <div
         className={cn(

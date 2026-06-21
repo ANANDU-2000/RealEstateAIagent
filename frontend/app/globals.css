@@ -59,6 +59,12 @@
 
   /* --- Sidebar widths --- */
   --sidebar-w:  224px;
+
+  /* --- Dashboard layout --- */
+  --mobile-nav-h:   72px;
+  --dashboard-pad-x: 20px;
+  --dashboard-pad-y: 16px;
+  --page-gap:       24px;
 }
 
 @theme inline {
@@ -188,4 +194,110 @@ body {
 .card-hover:hover {
   box-shadow: var(--shadow-md);
   border-color: var(--border-dark);
+}
+
+/* --- Dashboard viewport layout --- */
+.dashboard-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-dark) transparent;
+}
+
+.dashboard-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-dark);
+  border-radius: 999px;
+}
+
+.dashboard-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-light);
+}
+
+.dashboard-fill {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-shell {
+  gap: var(--page-gap);
+  padding-bottom: 8px;
+}
+
+.page-header {
+  padding-top: 2px;
+}
+
+.page-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-gap);
+  min-width: 0;
+}
+
+/* Horizontal tab strip — swipe/scroll with visible thin bar */
+.tab-row-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.tab-row-wrap::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 28px;
+  background: linear-gradient(to left, var(--background) 20%, transparent);
+}
+
+.tab-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-dark) transparent;
+  padding-bottom: 2px;
+}
+
+.tab-row::-webkit-scrollbar {
+  height: 4px;
+  display: block;
+}
+
+.tab-row::-webkit-scrollbar-thumb {
+  background: var(--border-dark);
+  border-radius: 999px;
+}
+
+.tab-row-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --dashboard-pad-x: 28px;
+    --dashboard-pad-y: 20px;
+  }
 }

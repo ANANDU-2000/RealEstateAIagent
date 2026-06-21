@@ -4,10 +4,20 @@ Complete these steps in Meta Business Manager. PropAgent cannot fix error **(#13
 
 ## 1. Register the phone number
 
-1. Open [Meta Business Suite](https://business.facebook.com/) → **WhatsApp Manager**.
-2. Select WABA ID: `1730231438174869`.
-3. Open phone `9056458838` (Phone Number ID: `1240751975783102`).
-4. Click **Register phone number** and complete verification until status is **Connected**.
+1. Open [Meta Business Suite](https://business.facebook.com/) → **WhatsApp Manager** → asset **PropAgent**.
+2. Confirm phone **+91 90564 58838** shows status **Connected** on the Phone numbers tab.
+3. Use these IDs in PropAgent (from your Meta screenshots, June 2026):
+
+| Field | Value | Where in Meta |
+|-------|-------|---------------|
+| WhatsApp business number | `9056458838` | Phone numbers tab |
+| **WABA ID** | `930455233343881` | Business asset header (PropAgent) |
+| **Phone Number ID** | `1234959086357829` | Phone profile modal header (top of profile screen) |
+| Access token | *(paste from Meta Developers → System User token)* | API Setup |
+
+> **Outdated IDs (do not use):** WABA `1730231438174869`, Phone Number ID `1240751975783102` — these were saved on PA-IN-0003 earlier but Meta now shows the new IDs above.
+
+4. Click **Register phone number** in Meta if status is not Connected (fixes error #133010).
 
 ## 2. Access token
 

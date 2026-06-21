@@ -14,6 +14,8 @@ import {
   Search,
   Star,
 } from 'lucide-react';
+import { PageShell } from '@/components/layout/PageShell';
+import { TabRow } from '@/components/layout/TabRow';
 import { LeadDetail } from '@/components/leads/LeadDetail';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
@@ -451,46 +453,40 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-foreground">Leads</h1>
-          <p className="mt-1 text-sm text-muted">
-            Drag cards between stages or open a lead for full history.
-          </p>
+    <PageShell
+      title="Leads"
+      description="Drag cards between stages or open a lead for full history."
+      actions={
+        <div className="hidden rounded-lg border border-border p-0.5 md:flex">
+          <button
+            type="button"
+            onClick={() => setViewMode('kanban')}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold',
+              viewMode === 'kanban'
+                ? 'bg-primary-light text-primary'
+                : 'text-muted hover:text-foreground'
+            )}
+          >
+            <LayoutGrid className="h-4 w-4" />
+            Kanban
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold',
+              viewMode === 'list'
+                ? 'bg-primary-light text-primary'
+                : 'text-muted hover:text-foreground'
+            )}
+          >
+            <List className="h-4 w-4" />
+            List
+          </button>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="hidden rounded-lg border border-border p-0.5 md:flex">
-            <button
-              type="button"
-              onClick={() => setViewMode('kanban')}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold',
-                viewMode === 'kanban'
-                  ? 'bg-primary-light text-primary'
-                  : 'text-muted hover:text-foreground'
-              )}
-            >
-              <LayoutGrid className="h-4 w-4" />
-              Kanban
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('list')}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold',
-                viewMode === 'list'
-                  ? 'bg-primary-light text-primary'
-                  : 'text-muted hover:text-foreground'
-              )}
-            >
-              <List className="h-4 w-4" />
-              List
-            </button>
-          </div>
-        </div>
-      </div>
-
+      }
+    >
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
         <Input
@@ -525,7 +521,7 @@ export default function LeadsPage() {
           />
         </Card>
       ) : viewMode === 'kanban' ? (
-        <div className="overflow-x-auto pb-4">
+        <div className="tab-row items-stretch gap-3 pb-1">
           <div className="flex min-w-max gap-3">
             {LEAD_COLUMNS.map((col) => {
               const items = grouped[col.stage];
@@ -557,7 +553,7 @@ export default function LeadsPage() {
                       {items.length}
                     </span>
                   </div>
-                  <div className="flex max-h-[calc(100vh-280px)] flex-col gap-2 overflow-y-auto p-2">
+                  <div className="flex flex-col gap-2 p-2">
                     {items.map((conv) => (
                       <LeadKanbanCard
                         key={conv.id}
@@ -661,6 +657,6 @@ export default function LeadsPage() {
         onUpdateNotes={(notes) => void handleUpdateNotes(notes)}
         onMarkUltraHot={() => void handleMarkUltraHot()}
       />
-    </div>
+    </PageShell>
   );
 }

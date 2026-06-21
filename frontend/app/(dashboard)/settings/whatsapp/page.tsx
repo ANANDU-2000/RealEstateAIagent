@@ -279,6 +279,32 @@ export default function WhatsAppSettingsPage() {
       error={error}
       onRetry={() => void loadSettings()}
     >
+      <Card className="border-primary/20 bg-primary-light/40">
+        <p className="text-[13px] font-semibold text-foreground">Paste these from Meta Business Suite</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-muted">
+          Log in as <strong className="font-medium text-foreground">anandukrishna2999@gmail.com</strong> (PA-IN-0003).
+          Demo accounts cannot receive WhatsApp.
+        </p>
+        <dl className="mt-3 grid gap-2 text-[12px] sm:grid-cols-2">
+          <div className="rounded-[var(--radius-md)] border border-border/80 bg-surface px-3 py-2">
+            <dt className="text-muted">WhatsApp number</dt>
+            <dd className="mt-0.5 font-mono font-semibold text-foreground">9056458838</dd>
+          </div>
+          <div className="rounded-[var(--radius-md)] border border-border/80 bg-surface px-3 py-2">
+            <dt className="text-muted">Phone Number ID</dt>
+            <dd className="mt-0.5 font-mono font-semibold text-foreground">1234959086357829</dd>
+          </div>
+          <div className="rounded-[var(--radius-md)] border border-border/80 bg-surface px-3 py-2 sm:col-span-2">
+            <dt className="text-muted">WABA ID</dt>
+            <dd className="mt-0.5 font-mono font-semibold text-foreground">930455233343881</dd>
+          </div>
+        </dl>
+        <p className="mt-3 text-[11px] text-muted">
+          Render also needs <code className="text-foreground">META_APP_SECRET</code> (Meta App → Settings → Basic).
+          Without it, inbound chats and AI replies will not work.
+        </p>
+      </Card>
+
       <Card className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -415,16 +441,18 @@ export default function WhatsAppSettingsPage() {
 
         <Input
           label="Phone Number ID"
-          placeholder="From Meta WhatsApp Manager"
+          placeholder="1234959086357829"
           value={metaPhoneNumberId}
           onChange={(e) => setMetaPhoneNumberId(e.target.value)}
+          hint="Phone profile modal header in Meta WhatsApp Manager"
         />
 
         <Input
           label="WhatsApp Business Account ID (WABA)"
-          placeholder="Meta Business Account ID"
+          placeholder="930455233343881"
           value={metaWabaId}
           onChange={(e) => setMetaWabaId(e.target.value)}
+          hint="Business asset ID in Meta Business Suite"
         />
 
         <div className="flex flex-col gap-1.5">

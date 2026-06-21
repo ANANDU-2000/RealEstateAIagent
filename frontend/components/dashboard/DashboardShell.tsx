@@ -125,6 +125,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { tenant, accessToken, logout } = useAuth();
   const [counts, setCounts] = useState({ unreadCount: 0, overdueCallbacks: 0 });
+  const immersiveRoute = pathname === '/chats' || pathname.startsWith('/chats/');
 
   useEffect(() => {
     if (!accessToken) return;
@@ -237,12 +238,24 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-5 pb-20 lg:px-7 lg:pb-6">
-          <WrongUrlBanner />
-          {children}
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="shrink-0 px-[var(--dashboard-pad-x)] pt-4 lg:pt-5">
+            <WrongUrlBanner />
+          </div>
+          <div
+            className={cn(
+              'flex min-h-0 flex-1 flex-col px-[var(--dashboard-pad-x)] pb-[calc(var(--mobile-nav-h)+12px)] pt-3 lg:pb-[var(--dashboard-pad-y)]',
+              immersiveRoute ? 'overflow-hidden' : 'dashboard-scroll'
+            )}
+          >
+            {children}
+          </div>
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border/80 bg-surface/95 px-1 py-2 backdrop-blur-md lg:hidden">
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border/80 bg-surface/95 px-1 backdrop-blur-md lg:hidden"
+          style={{ height: 'var(--mobile-nav-h)', paddingTop: 6, paddingBottom: 6 }}
+        >
           {MOBILE_NAV.map((item) => (
             <div key={item.href} className="flex flex-1 justify-center">
               <NavLink

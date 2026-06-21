@@ -21,6 +21,7 @@ import {
   listMeetings,
   listProperties,
 } from '@/lib/api';
+import { PageShell } from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -255,29 +256,25 @@ export default function CalendarPage() {
 
   if (authLoading || !accessToken) {
     return (
-      <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
-        <Skeleton className="mb-6 h-10 w-48" />
+      <PageShell>
+        <Skeleton className="h-10 w-48" />
         <Skeleton className="h-96 w-full rounded-xl" />
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-foreground">Calendar</h1>
-          <p className="mt-0.5 text-[14px] text-muted">
-            Site visits, office meetings, and callbacks in one view.
-          </p>
-        </div>
+    <PageShell
+      title="Calendar"
+      description="Site visits, office meetings, and callbacks in one view."
+      actions={
         <Button onClick={openBookModal}>
           <Plus className="h-4 w-4" />
           Book Visit
         </Button>
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      }
+    >
+      <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm" onClick={goPrevWeek}>
           <ChevronLeft className="h-4 w-4" />
           Prev
@@ -294,7 +291,7 @@ export default function CalendarPage() {
         </span>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3">
         {LEGEND.map((item) => (
           <div key={item.label} className="flex items-center gap-1.5 text-xs text-muted">
             <span className={`h-2.5 w-2.5 rounded-sm ${item.color}`} />
@@ -304,7 +301,7 @@ export default function CalendarPage() {
       </div>
 
       {error && (
-        <Card padding="sm" className="mb-4 border-danger bg-danger-light">
+        <Card padding="sm" className="border-danger bg-danger-light">
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm text-danger">{error}</p>
             <Button variant="outline" size="sm" onClick={loadMeetings}>
@@ -568,6 +565,6 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

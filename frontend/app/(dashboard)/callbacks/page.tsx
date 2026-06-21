@@ -9,6 +9,8 @@ import {
   Phone,
   PhoneCall,
 } from 'lucide-react';
+import { PageShell } from '@/components/layout/PageShell';
+import { TabRow } from '@/components/layout/TabRow';
 import { useAuth } from '@/hooks/useAuth';
 import {
   type ApiError,
@@ -154,56 +156,36 @@ export default function CallbacksPage() {
 
   if (authLoading || !accessToken) {
     return (
-      <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
-        <Skeleton className="mb-6 h-10 w-48" />
+      <PageShell>
+        <Skeleton className="h-10 w-48" />
         <Skeleton className="h-64 w-full rounded-xl" />
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
-      <div>
-        <h1 className="text-[22px] font-bold tracking-tight text-foreground">Callbacks</h1>
-        <p className="mt-1 text-[14px] text-muted">
-          Customers who asked Arjun to call them back.
-        </p>
-      </div>
-
+    <PageShell
+      title="Callbacks"
+      description="Customers who asked Arjun to call them back."
+    >
       {overdueCount > 0 && (
-        <Alert variant="warning" className="mb-4">
+        <Alert variant="warning">
           You have {overdueCount} overdue callback{overdueCount === 1 ? '' : 's'}. These
           customers are waiting.
         </Alert>
       )}
 
-      <div className="mb-4 flex flex-wrap gap-1 border-b border-border">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
-              activeTab === tab.key
-                ? 'text-primary after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary'
-                : 'text-muted hover:text-foreground'
-            }`}
-          >
-            {tab.label}
-            {!loading && tab.key !== 'all' && tabCounts[tab.key] > 0 && (
-              <span
-                className={`ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
-                  tab.key === 'overdue'
-                    ? 'bg-danger-light text-danger'
-                    : 'bg-surface-3 text-muted'
-                }`}
-              >
-                {tabCounts[tab.key]}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <TabRow
+        variant="underline"
+        activeId={activeTab}
+        onChange={(id) => setActiveTab(id as TabKey)}
+        items={TABS.map((tab) => ({
+          id: tab.key,
+          label: tab.label,
+          count: !loading && tab.key !== 'all' ? tabCounts[tab.key] : undefined,
+          countVariant: tab.key === 'overdue' ? 'danger' : 'default',
+        }))}
+      />
 
       {error && (
         <Card padding="sm" className="mb-4 border-danger bg-danger-light">
@@ -314,6 +296,6 @@ export default function CallbacksPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

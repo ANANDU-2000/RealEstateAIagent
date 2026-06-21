@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Spinner } from '@/components/ui/Spinner';
+import { PageShell } from '@/components/layout/PageShell';
+import { TabRow } from '@/components/layout/TabRow';
 import { useAuth } from '@/hooks/useAuth';
 import {
   type AnalyticsData,
@@ -339,32 +341,21 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl animate-fade-in flex-col gap-7">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-foreground">Analytics</h1>
-          <p className="mt-1 text-[14px] text-muted">
-            Lead pipeline, property performance, and AI usage for your brokerage.
-          </p>
-        </div>
-        <div className="flex gap-1 rounded-[var(--radius-lg)] border border-border bg-surface p-1">
-          {RANGE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setRange(opt.value)}
-              className={cn(
-                'rounded-[var(--radius-md)] px-3 py-1.5 text-[13px] font-medium transition-colors',
-                range === opt.value
-                  ? 'bg-surface shadow-[var(--shadow-xs)] font-semibold text-foreground'
-                  : 'text-muted hover:text-foreground'
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
+    <PageShell
+      title="Analytics"
+      description="Lead pipeline, property performance, and AI usage for your brokerage."
+      actions={
+        <TabRow
+          activeId={String(range)}
+          onChange={(id) => setRange(Number(id) as AnalyticsRange)}
+          className="w-full sm:w-auto"
+          items={RANGE_OPTIONS.map((opt) => ({
+            id: String(opt.value),
+            label: opt.label,
+          }))}
+        />
+      }
+    >
 
       {error && (
         <Alert variant="error">
@@ -531,6 +522,6 @@ export default function AnalyticsPage() {
           </Card>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }
