@@ -48,14 +48,31 @@ export async function runMigrations(): Promise<void> {
 
     const migrationsDir = findMigrationsDir();
     if (migrationsDir) {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+          filename TEXT PRIMARY KEY,
+          applied_at TIMESTAMPTZ DEFAULT NOW()
+        )
+      `);
+
       const files = fs
         .readdirSync(migrationsDir)
         .filter((file) => file.endsWith('.sql'))
         .sort();
 
       for (const file of files) {
+        const already = await client.query<{ filename: string }>(
+          `SELECT filename FROM schema_migrations WHERE filename = $1`,
+          [file]
+        );
+        if (already.rowCount) {
+          console.log(`Skipping migration (already applied): ${file}`);
+          continue;
+        }
+
         const migrationSql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
         await client.query(migrationSql);
+        await client.query(`INSERT INTO schema_migrations (filename) VALUES ($1)`, [file]);
         console.log(`Applied migration: ${file}`);
       }
     }
