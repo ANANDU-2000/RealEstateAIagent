@@ -9,11 +9,13 @@ import { sendWhatsAppMessage, downloadWhatsAppMedia } from '../services/whatsapp
 import {
   buildSystemPrompt,
   getAIResponse,
-  type ChatMessage,
-  type BuildSystemPromptParams,
   type VisionAttachment,
 } from '../services/ai.service';
-import { fetchRelevantDocumentChunks } from '../services/document.service';
+import {
+  appendConversationStory,
+  buildConversationHistory,
+  buildTenantPromptContext,
+} from '../services/promptContext.service';
 
 const router = Router();
 
@@ -63,13 +65,6 @@ const ESCALATION_FLAGS = [
   'LOAN_QUESTION',
   'NRI',
 ] as const;
-
-function countryToMarket(country: string): { market: string; currency: string } {
-  const code = country.toUpperCase();
-  if (code === 'CA') return { market: 'canada', currency: 'CAD' };
-  if (['AE', 'SA', 'QA'].includes(code)) return { market: 'uae', currency: 'AED' };
-  return { market: 'india', currency: 'INR' };
-}
 
 function detectLanguage(text: string): 'english' | 'hinglish' | 'devanagari' | 'arabic' | 'french' {
   if (/[\u0600-\u06FF]/.test(text)) return 'arabic';
@@ -352,137 +347,6 @@ async function sendOutboundAndStore(params: {
     delivered: sendResult.success,
     sentAt: stored.sentAt,
   };
-}
-
-async function buildPromptContext(
-  tenantId: string,
-  customerMessage = ''
-): Promise<BuildSystemPromptParams> {
-  const tenantResult = await pool.query<{
-    business_name: string;
-    owner_name: string;
-    country: string;
-    ai_name: string;
-    office_address: string | null;
-    office_maps_link: string | null;
-    language_default: string;
-    ai_followup_count: number;
-    no_msg_after_hour: number;
-  }>(
-    `SELECT
-       t.business_name,
-       t.owner_name,
-       t.country,
-       COALESCE(bs.ai_name, 'Arjun') AS ai_name,
-       COALESCE(bs.office_address, '') AS office_address,
-       COALESCE(bs.office_maps_link, '') AS office_maps_link,
-       COALESCE(bs.language_default, 'english') AS language_default,
-       COALESCE(bs.ai_followup_count, 2) AS ai_followup_count,
-       COALESCE(bs.no_msg_after_hour, 21) AS no_msg_after_hour
-     FROM tenants t
-     JOIN broker_settings bs ON bs.tenant_id = t.id
-     WHERE t.id = $1`,
-    [tenantId]
-  );
-
-  const tenant = tenantResult.rows[0];
-  const { market, currency } = countryToMarket(tenant?.country ?? 'IN');
-
-  const propertiesResult = await pool.query(
-    `SELECT
-       name, property_type, listing_type, area_size, area_unit,
-       price, currency, city, location, area_tags, details
-     FROM properties
-     WHERE tenant_id = $1 AND is_available = true AND is_hidden = false
-     ORDER BY created_at DESC`,
-    [tenantId]
-  );
-
-  const priceResult = await pool.query<{ min_price: string | null; max_price: string | null }>(
-    `SELECT MIN(price)::text AS min_price, MAX(price)::text AS max_price
-     FROM properties
-     WHERE tenant_id = $1 AND is_available = true AND is_hidden = false`,
-    [tenantId]
-  );
-
-  const slotsResult = await pool.query(
-    `SELECT day_of_week, slot_time::text AS slot_time
-     FROM availability_slots
-     WHERE tenant_id = $1 AND is_active = true`,
-    [tenantId]
-  );
-
-  const bookedResult = await pool.query(
-    `SELECT scheduled_at
-     FROM meetings
-     WHERE tenant_id = $1 AND status = 'confirmed' AND scheduled_at > NOW()
-     ORDER BY scheduled_at ASC
-     LIMIT 50`,
-    [tenantId]
-  );
-
-  const availableSlots: Array<{ day_of_week: number; slot_time: string }> = [];
-  const now = new Date();
-  for (let dayOffset = 0; dayOffset < 14; dayOffset += 1) {
-    const date = new Date(now);
-    date.setDate(date.getDate() + dayOffset);
-    const dow = date.getDay();
-    for (const slot of slotsResult.rows) {
-      if (slot.day_of_week === dow) {
-        availableSlots.push({
-          day_of_week: dow,
-          slot_time: slot.slot_time,
-        });
-      }
-    }
-  }
-
-  const documentChunks = await fetchRelevantDocumentChunks(tenantId, customerMessage);
-  const document_chunks_json = JSON.stringify(
-    documentChunks.map((chunk) => ({
-      filename: chunk.filename,
-      chunk_index: chunk.chunkIndex,
-      property_id: chunk.propertyId,
-      text: chunk.chunkText,
-    }))
-  );
-
-  return {
-    workspace_name: tenant?.business_name ?? '',
-    owner_name: tenant?.owner_name ?? '',
-    ai_name: tenant?.ai_name ?? 'Arjun',
-    office_address: tenant?.office_address ?? '',
-    office_maps_link: tenant?.office_maps_link ?? '',
-    language_default: tenant?.language_default ?? 'english',
-    market,
-    property_list_json: JSON.stringify(propertiesResult.rows),
-    available_slots_json: JSON.stringify(availableSlots),
-    booked_slots_json: JSON.stringify(bookedResult.rows),
-    min_property_price: priceResult.rows[0]?.min_price ?? '0',
-    max_property_price: priceResult.rows[0]?.max_price ?? '0',
-    currency,
-    followup_max: String(tenant?.ai_followup_count ?? 2),
-    no_msg_after_hour: String(tenant?.no_msg_after_hour ?? 21),
-    document_chunks_json,
-  };
-}
-
-async function buildConversationHistory(conversationId: string): Promise<ChatMessage[]> {
-  const result = await pool.query<{ content: string; sender: string; direction: string }>(
-    `SELECT content, sender, direction
-     FROM messages
-     WHERE conversation_id = $1
-     ORDER BY sent_at DESC
-     LIMIT 10`,
-    [conversationId]
-  );
-
-  return result.rows
-    .reverse()
-    .map((row) => ({
-      role: row.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
-      content: row.content,
-    }));
 }
 
 async function createEscalation(
@@ -781,8 +645,12 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
       }
     }
 
-    const history = await buildConversationHistory(conversation.id);
-    const promptParams = await buildPromptContext(tenant.tenant_id, text || inboundContent);
+    const history = await buildConversationHistory(conversation.id, 20);
+    const promptParams = await buildTenantPromptContext(
+      tenant.tenant_id,
+      text || inboundContent,
+      conversation.id
+    );
     const systemPrompt = await buildSystemPrompt(promptParams);
 
     let aiResult;
@@ -824,6 +692,13 @@ router.post('/whatsapp', async (req: RawBodyRequest, res: Response) => {
       tenantId: tenant.tenant_id,
       aiModelUsed: aiResult.model_used,
     });
+
+    await appendConversationStory(
+      conversation.id,
+      tenant.tenant_id,
+      text || inboundContent,
+      replyText
+    );
 
     await pool.query(
       `UPDATE client_plans

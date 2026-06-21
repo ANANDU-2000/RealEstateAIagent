@@ -362,7 +362,7 @@ Maximum Property Price:
 | `{currency}` | tenants.country → mapped | "INR" |
 | `{min_property_price}` | MIN(properties.price) | "3000000" |
 | `{max_property_price}` | MAX(properties.price) | "50000000" |
-| `{property_list_json}` | properties WHERE is_available=true | JSON array |
+| `{property_list_json}` | properties WHERE is_available=true | JSON array with id, price, price_display, photo_urls, details — always use latest price_display when quoting price |
 | `{available_slots_json}` | availability_slots + meetings join | JSON array |
 | `{booked_slots_json}` | meetings WHERE status=confirmed | JSON array |
 | `{followup_max}` | broker_settings.ai_followup_count | "2" |

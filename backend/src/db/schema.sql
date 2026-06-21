@@ -221,6 +221,7 @@ CREATE TABLE IF NOT EXISTS conversations (
   is_nri                   BOOLEAN DEFAULT false,
   assigned_to              UUID REFERENCES team_members(id) ON DELETE SET NULL,
   broker_notes             TEXT,
+  ai_story_summary         TEXT,
   last_broker_read         TIMESTAMPTZ,
   first_message_at         TIMESTAMPTZ DEFAULT NOW(),
   last_message_at          TIMESTAMPTZ DEFAULT NOW(),

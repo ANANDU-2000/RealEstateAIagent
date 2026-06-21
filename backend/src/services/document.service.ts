@@ -124,9 +124,21 @@ export async function fetchRelevantDocumentChunks(
     .sort((a, b) => b.score - a.score);
 
   const withHits = ranked.filter((r) => r.score > 0);
-  const selected = (withHits.length ? withHits : ranked).slice(0, limit);
+  let selected = (withHits.length ? withHits : ranked).slice(0, limit);
 
-  return selected.map(({ documentId, filename, chunkIndex, chunkText, propertyId: pid }) => ({
+  if (!withHits.length && ranked.length > 0) {
+    selected = ranked.slice(0, Math.min(3, limit));
+  }
+
+  const seen = new Set<string>();
+  const deduped = selected.filter((row) => {
+    const key = `${row.documentId}:${row.chunkIndex}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return deduped.map(({ documentId, filename, chunkIndex, chunkText, propertyId: pid }) => ({
     documentId,
     filename,
     chunkIndex,

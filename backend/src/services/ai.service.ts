@@ -19,6 +19,7 @@ export type BuildSystemPromptParams = {
   followup_max: string;
   no_msg_after_hour: string;
   document_chunks_json: string;
+  conversation_story?: string;
 };
 
 export type ChatMessage = {
@@ -136,6 +137,7 @@ export async function buildSystemPrompt(params: BuildSystemPromptParams): Promis
     followup_max: params.followup_max,
     no_msg_after_hour: params.no_msg_after_hour,
     document_chunks_json: params.document_chunks_json,
+    conversation_story: params.conversation_story ?? '',
   };
 
   for (const [key, value] of Object.entries(replacements)) {
@@ -146,23 +148,25 @@ export async function buildSystemPrompt(params: BuildSystemPromptParams): Promis
     prompt += `\n\n## BROKER DOCUMENT EXCERPTS\n${params.document_chunks_json}\nOnly answer document questions from these excerpts. If no match, hand off to ${params.owner_name}.`;
   }
 
+  if (params.conversation_story?.trim()) {
+    prompt += `\n\n## CONVERSATION STORY (use for continuity; reply in customer's language — English or Hinglish/Hindi Roman as detected)\n${params.conversation_story.trim()}`;
+  }
+
   return prompt;
 }
 
 function resolvePrimaryProvider(): AIProvider {
-  const configured = (process.env.AI_PRIMARY_PROVIDER ?? 'auto').toLowerCase();
+  const configured = (process.env.AI_PRIMARY_PROVIDER ?? 'openai').toLowerCase();
   const hasAnthropic = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
   const hasOpenAI = Boolean(process.env.OPENAI_API_KEY?.trim());
 
   if (configured === 'openai') return 'openai';
   if (configured === 'anthropic') return 'anthropic';
 
-  if (hasOpenAI && !hasAnthropic) return 'openai';
-  if (hasAnthropic && !hasOpenAI) return 'anthropic';
-  if (hasAnthropic) return 'anthropic';
   if (hasOpenAI) return 'openai';
+  if (hasAnthropic) return 'anthropic';
 
-  throw new Error('No AI provider configured (set ANTHROPIC_API_KEY or OPENAI_API_KEY)');
+  throw new Error('No AI provider configured (set OPENAI_API_KEY or ANTHROPIC_API_KEY)');
 }
 
 async function callAnthropic(
