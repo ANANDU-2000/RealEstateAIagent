@@ -38,6 +38,7 @@ type ChatPanelProps = {
   onOpenProfile?: () => void;
   onTakeOver: () => void;
   onHandBackToAi: () => void;
+  onResumeAi?: () => void;
   onSendMessage: (content: string) => void;
   onRetry: () => void;
 };
@@ -172,6 +173,7 @@ export function ChatPanel({
   onOpenProfile,
   onTakeOver,
   onHandBackToAi,
+  onResumeAi,
   onSendMessage,
   onRetry,
 }: ChatPanelProps) {
@@ -309,9 +311,16 @@ export function ChatPanel({
 
       <div className="shrink-0 border-t border-border bg-surface px-4 py-3">
         {locked ? (
-          <Alert variant="warning">
-            AI paused. Owner notified. Messaging is disabled.
-          </Alert>
+          <div className="space-y-3">
+            <Alert variant="warning">
+              AI paused for this lead. WhatsApp replies from {aiName} are stopped until you resume.
+            </Alert>
+            {onResumeAi && (
+              <Button onClick={onResumeAi} size="sm" fullWidth>
+                Resume AI replies
+              </Button>
+            )}
+          </div>
         ) : !humanMode ? (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[13px] text-foreground">

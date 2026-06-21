@@ -26,6 +26,7 @@ type ProfilePanelProps = {
   onClose?: () => void;
   onUpdateNotes: (notes: string) => void;
   onMarkUltraHot: () => void;
+  onResumeAi?: () => void;
   onArchive?: () => void;
 };
 
@@ -62,6 +63,7 @@ export function ProfilePanel({
   onClose,
   onUpdateNotes,
   onMarkUltraHot,
+  onResumeAi,
   onArchive,
 }: ProfilePanelProps) {
   const [notes, setNotes] = useState('');
@@ -222,6 +224,12 @@ export function ProfilePanel({
               <Zap className="h-4 w-4" />
               Mark Ultra Hot
             </Button>
+            {onResumeAi &&
+              (conversation.aiPaused || conversation.leadStage === 'ultra_hot') && (
+                <Button variant="primary" size="sm" fullWidth onClick={onResumeAi}>
+                  Resume AI replies
+                </Button>
+              )}
             {onArchive && (
               <Button variant="ghost" size="sm" fullWidth onClick={onArchive}>
                 <Trash2 className="h-4 w-4" />

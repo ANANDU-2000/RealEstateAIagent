@@ -395,6 +395,20 @@ export default function ChatsPage() {
     }
   };
 
+  const handleResumeAi = async () => {
+    if (!accessToken || !selectedId) return;
+    try {
+      const result = await updateConversation(accessToken, selectedId, {
+        aiPaused: false,
+        leadStage: 'new',
+        humanOverride: false,
+      });
+      setConversations((prev) => mergeConversation(prev, result.conversation));
+    } catch (err) {
+      setChatError(getErrorMessage(err));
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -466,6 +480,7 @@ export default function ChatsPage() {
           }}
           onTakeOver={() => void handleTakeOver()}
           onHandBackToAi={() => void handleHandBackToAi()}
+          onResumeAi={() => void handleResumeAi()}
           onSendMessage={(content) => void handleSendMessage(content)}
           onRetry={() => selectedId && void loadConversationDetail(selectedId)}
         />
@@ -497,6 +512,7 @@ export default function ChatsPage() {
           onClose={() => setMobileView('chat')}
           onUpdateNotes={(notes) => void handleUpdateNotes(notes)}
           onMarkUltraHot={() => void handleMarkUltraHot()}
+          onResumeAi={() => void handleResumeAi()}
         />
       </div>
     </div>
